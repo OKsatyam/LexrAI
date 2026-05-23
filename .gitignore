@@ -1,0 +1,37 @@
+# Environment
+.env
+
+# Runtime data
+backend/storage/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+
+# Chroma
+.chroma/
+
+# Frontend
+node_modules/
+.next/
+frontend/.env.local
+
+# Eval results
+eval/results/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code internals
+.agents/
+skills-lock.json
