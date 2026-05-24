@@ -3,6 +3,9 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from app.pillars.explore import answer_question
+from app.storage.db import get_repo
+
 router = APIRouter(prefix="/explore", tags=["explore"])
 
 
@@ -26,6 +29,18 @@ class ExploreResponse(BaseModel):
 
 @router.post("", response_model=ExploreResponse)
 async def explore(request: ExploreRequest):
-    # TODO Phase 1: retrieve chunks, call LLM, return answer + sources
-    # conversation_id: generate uuid if not provided, return in response
-    raise HTTPException(status_code=501, detail="Not implemented — Phase 1")
+    repo = get_repo(request.repo_id)
+    if not repo:
+        raise HTTPException(status_code=404, detail=f"Repo {request.repo_id} not found")
+    if repo["status"] != "done":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Repo not ready. Current status: {repo['status']}",
+        )
+
+    result = answer_question(
+        repo_id=request.repo_id,
+        question=request.question,
+        conversation_id=request.conversation_id,
+    )
+    return ExploreResponse(**result)

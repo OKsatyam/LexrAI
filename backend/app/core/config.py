@@ -14,6 +14,7 @@ class Settings:
     # Storage paths — relative to backend/storage/
     storage_dir: Path = Path(__file__).parent.parent.parent.parent / "storage"
     repos_dir: Path = storage_dir / "repos"
+    chroma_dir: Path = storage_dir / "chroma"
     db_path: Path = storage_dir / "lexrai.db"
 
 

@@ -10,9 +10,11 @@ langchain-google-genai==2.0.5
 
 # Vector store
 chromadb==0.5.18
+langchain-chroma==0.1.4
 
 # Embeddings (local, no API key)
 sentence-transformers==3.3.1
+langchain-huggingface==0.1.2
 
 # Static analysis
 ruff==0.8.2
