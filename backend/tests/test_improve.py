@@ -35,27 +35,32 @@ def test_generate_improve_calls_llm():
         {"index": 3, "explanation": "Reduce complexity."},
     ]
     with patch("app.pillars.improve.get_llm") as mock_get_llm:
-        mock_chain = MagicMock()
-        mock_chain.invoke.return_value = explained
         mock_llm = MagicMock()
-        mock_llm.__or__ = MagicMock(return_value=mock_chain)
         mock_get_llm.return_value = mock_llm
 
         with patch("app.pillars.improve._PROMPT") as mock_prompt:
+            mock_chain = MagicMock()
+            mock_chain.invoke.return_value = explained
+            # Fix: | on mock_chain must return mock_chain so the full LCEL chain stays mockable
+            mock_chain.__or__ = MagicMock(return_value=mock_chain)
             mock_prompt.__or__ = MagicMock(return_value=mock_chain)
+
             result = generate_improve(FINDINGS)
 
     assert isinstance(result, list)
+    assert len(result) == 3
 
 
 def test_caps_at_max_findings():
     many = [Finding("ruff", "f.py", i, "warning", "msg") for i in range(30)]
     with patch("app.pillars.improve.get_llm") as mock_get_llm:
-        mock_chain = MagicMock()
-        mock_chain.invoke.return_value = [{"index": i, "explanation": "x"} for i in range(1, 21)]
-        mock_get_llm.return_value = MagicMock()
+        mock_llm = MagicMock()
+        mock_get_llm.return_value = mock_llm
 
         with patch("app.pillars.improve._PROMPT") as mock_prompt:
+            mock_chain = MagicMock()
+            mock_chain.invoke.return_value = [{"index": i, "explanation": "x"} for i in range(1, 21)]
+            mock_chain.__or__ = MagicMock(return_value=mock_chain)
             mock_prompt.__or__ = MagicMock(return_value=mock_chain)
             result = generate_improve(many)
 
