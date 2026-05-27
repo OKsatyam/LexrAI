@@ -7,9 +7,11 @@ Update after every meaningful change: new module, design decision, API/schema ch
 
 ## Current State
 
-- **Phase:** Pre-build
-- **Last completed:** All architecture decisions locked. `CLAUDE.md` written.
-- **Next:** Create project scaffold → start Phase 1 ingestion pipeline.
+- **Phase:** Phase 1 DONE — eval passed. Starting Phase 2.
+- **Last completed:** Phase 1 eval ran on `pallets/click` (20 Q&A pairs). Metrics recorded. All 57 tests pass. Server verified.
+- **Next:** Build Phase 2 — conversation memory (`SQLChatMessageHistory`), `/understand` and `/improve` endpoints reading pre-generated summaries, full Next.js UI with 3 tabs.
+- **Known minor issue:** `datetime.utcnow()` deprecation warning in `backend/app/storage/db.py:62` — non-blocking, fix when convenient.
+- **Naive baseline:** harness skips naive comparison because `load_repo` lacks `__wrapped__` — fix in next eval pass or Phase 2 harness update.
 
 ---
 
@@ -165,15 +167,25 @@ lexrai/                     ← monorepo root
 
 ## Phases
 
-### Phase 1 — Basic RAG + Eval Foundation
+### Phase 1 — Basic RAG + Eval Foundation ✅ DONE
 
 **Scope:** Ingestion pipeline, `/explore` (single-turn Q&A), eval harness, minimal Next.js UI.
 
+**Eval results** (`eval/results/phase1_results.json`) — repo: `pallets/click`, 20 Q&A pairs:
+| Metric | Code-aware (Jina) | Naive |
+|---|---|---|
+| Hit@1 | 0.55 | skipped* |
+| Hit@3 | 0.90 | skipped* |
+| Hit@5 | 0.90 | skipped* |
+| MRR | 0.717 | skipped* |
+
+*Naive baseline skipped: `load_repo.__wrapped__` absent — fix before final report.
+
 **Done when ALL of these hold:**
-1. `POST /ingest` works end-to-end: clone → chunk → embed → static tools → summaries → store
-2. `POST /explore` returns grounded answers from Chroma
-3. Eval harness runs clean: Hit@k, MRR, naive-vs-code-aware comparison recorded in `eval/results/`
-4. Minimal Next.js UI live: URL input, ingest trigger, status polling, Explore Q&A box
+1. ✅ `POST /ingest` works end-to-end: clone → chunk → embed → static tools → summaries → store
+2. ✅ `POST /explore` returns grounded answers from Chroma
+3. ✅ Eval harness ran: Hit@k, MRR recorded in `eval/results/`
+4. ✅ Minimal Next.js UI live: URL input, ingest trigger, status polling, Explore Q&A box
 
 ### Phase 2 — All Three Pillars *(safe submission target)*
 

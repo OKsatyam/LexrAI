@@ -1,0 +1,86 @@
+{
+  "repo_id": "1f527efd5350",
+  "github_url": "https://github.com/pallets/click",
+  "pairs": [
+    {
+      "question": "how are CLI parameter types like INT FLOAT STRING and Choice implemented?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\types.py"]
+    },
+    {
+      "question": "where is exception handling defined, specifically UsageError and BadParameter?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\exceptions.py"]
+    },
+    {
+      "question": "how does CliRunner work for testing CLI applications?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\testing.py"]
+    },
+    {
+      "question": "how are password prompts and confirmation prompts implemented?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\termui.py"]
+    },
+    {
+      "question": "how is help text formatting and paragraph indentation handled?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\formatting.py"]
+    },
+    {
+      "question": "how is global context managed and where is current_context stored?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\globals.py"]
+    },
+    {
+      "question": "how does shell completion and autocomplete work?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\shell_completion.py"]
+    },
+    {
+      "question": "how are command line tokens and options parsed internally?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\parser.py"]
+    },
+    {
+      "question": "how is Windows console unicode encoding handled?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\_winconsole.py"]
+    },
+    {
+      "question": "where is cross-platform stream and terminal compatibility code?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\_compat.py"]
+    },
+    {
+      "question": "how is the progress bar and pager implemented?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\_termui_impl.py"]
+    },
+    {
+      "question": "how does MultiCommand work and how are subcommands invoked?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\core.py"]
+    },
+    {
+      "question": "how does pass_context work and what does Context store?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\core.py"]
+    },
+    {
+      "question": "what is the INT type and how does it convert string input to integer?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\types.py"]
+    },
+    {
+      "question": "how does text wrapping work inside the formatter?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\formatting.py"]
+    },
+    {
+      "question": "how is echo implemented and where is the output stream written?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\utils.py"]
+    },
+    {
+      "question": "where are the @click.command and @click.option decorators defined?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\decorators.py"]
+    },
+    {
+      "question": "how does the Path type validate file and directory arguments?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\types.py"]
+    },
+    {
+      "question": "where is the abort and exit code logic defined in exceptions?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\exceptions.py"]
+    },
+    {
+      "question": "how does the confirm function prompt the user for yes or no input?",
+      "relevant_files": ["C:\\Users\\sk921\\OneDrive\\Desktop\\LexrAi\\backend\\storage\\repos\\1f527efd5350\\src\\click\\termui.py"]
+    }
+  ]
+}
