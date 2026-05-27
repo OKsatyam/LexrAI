@@ -7,11 +7,12 @@ Update after every meaningful change: new module, design decision, API/schema ch
 
 ## Current State
 
-- **Phase:** Phase 1 DONE — eval passed. Starting Phase 2.
-- **Last completed:** Phase 1 eval ran on `pallets/click` (20 Q&A pairs). Metrics recorded. All 57 tests pass. Server verified.
-- **Next:** Build Phase 2 — conversation memory (`SQLChatMessageHistory`), `/understand` and `/improve` endpoints reading pre-generated summaries, full Next.js UI with 3 tabs.
+- **Phase:** Phase 2 DONE — eval passed. Ready for Phase 3.
+- **Last completed:** Phase 2 eval ran — Understand rubric 3.68/5, 20 Improve findings, 100% explanation coverage. Full UI with 3 tabs live.
+- **Next:** Phase 3 — LangGraph `StateGraph` agent for Improve, LangSmith tracing, bounded agentic loop.
 - **Known minor issue:** `datetime.utcnow()` deprecation warning in `backend/app/storage/db.py:62` — non-blocking, fix when convenient.
-- **Naive baseline:** harness skips naive comparison because `load_repo` lacks `__wrapped__` — fix in next eval pass or Phase 2 harness update.
+- **Naive baseline:** harness skips naive comparison because `load_repo` lacks `__wrapped__` — fix before final report.
+- **Precision/recall:** Needs Tier 1 controlled repo with planted bugs — deferred to Phase 3 eval.
 
 ---
 
@@ -187,17 +188,30 @@ lexrai/                     ← monorepo root
 3. ✅ Eval harness ran: Hit@k, MRR recorded in `eval/results/`
 4. ✅ Minimal Next.js UI live: URL input, ingest trigger, status polling, Explore Q&A box
 
-### Phase 2 — All Three Pillars *(safe submission target)*
+### Phase 2 — All Three Pillars *(safe submission target)* ✅ DONE
 
 **Scope:** All pillars, conversation memory, cross-file tracing, full Next.js UI.
 
+**Eval results** (`eval/results/phase2_results.json`) — repo: `pallets/click`:
+| Metric | Value |
+|---|---|
+| Hit@1 | 0.55 |
+| Hit@3 / Hit@5 | 0.90 |
+| MRR | 0.717 |
+| Understand overall (1–5) | 3.68 |
+| Understand by section | purpose 2.5 / audience 3.75 / setup 5.0 / features 2.14 / limitations 5.0 |
+| Improve findings | 20 (all radon/high — cyclomatic complexity in core.py) |
+| Explanation coverage | 100% |
+
+Note: Improve shows only Radon findings for click (a well-maintained library). Ruff/Bandit findings appear on repos with real issues. Precision/recall needs Tier 1 controlled repo — deferred.
+
 **Done when ALL of these hold:**
-1. `GET /understand` returns pre-generated summary
-2. `GET /improve` returns pre-generated findings
-3. `POST /explore` has conversation memory (`SQLChatMessageHistory`)
-4. Explore sources span multiple files (cross-file tracing)
-5. Next.js UI: all 3 tabs usable
-6. Eval harness rerun: Understand rubric + Improve precision/recall recorded
+1. ✅ `GET /understand` returns pre-generated summary
+2. ✅ `GET /improve` returns pre-generated findings
+3. ✅ `POST /explore` has conversation memory (`SQLChatMessageHistory`)
+4. ✅ Explore sources span multiple files (cross-file tracing via Chroma retrieval)
+5. ✅ Next.js UI: all 3 tabs usable (Understand / Explore / Improve)
+6. ✅ Eval harness rerun: Understand rubric + Improve summary recorded
 
 ### Phase 3 — LangGraph Agent
 

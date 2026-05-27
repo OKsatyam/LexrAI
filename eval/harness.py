@@ -118,6 +118,122 @@ def run_phase_1():
     print(f"\nResults saved to {out}")
 
 
+# ---------------------------------------------------------------------------
+# Phase 2 helpers
+# ---------------------------------------------------------------------------
+
+# Per-repo ground-truth keywords for Understand rubric scoring.
+# Each section lists terms that SHOULD appear in the summary.
+# Score = matched / total terms, scaled to 1–5 (min 1).
+_UNDERSTAND_RUBRIC: dict[str, dict[str, list[str]]] = {
+    "1f527efd5350": {  # pallets/click
+        "purpose": ["cli", "command-line", "command line", "command line interface"],
+        "audience": ["developer", "devops", "scientist", "engineer"],
+        "setup": ["pip install", "pip"],
+        "features": ["argument", "option", "decorator", "group", "subcommand", "completion", "testing"],
+        "limitations": [],  # any non-empty section earns full credit
+    }
+}
+
+
+def _score_section(summary_lower: str, keywords: list[str]) -> float:
+    """Return 1–5 based on keyword coverage. Empty keyword list = presence check."""
+    if not keywords:
+        return 5.0 if len(summary_lower) > 20 else 1.0
+    hits = sum(1 for kw in keywords if kw in summary_lower)
+    ratio = hits / len(keywords)
+    return round(max(1.0, ratio * 5), 2)
+
+
+def score_understand(repo_id: str, summary: str) -> dict:
+    rubric = _UNDERSTAND_RUBRIC.get(repo_id)
+    if rubric is None:
+        return {"note": f"No rubric defined for repo {repo_id}"}
+
+    low = summary.lower()
+    scores = {section: _score_section(low, kws) for section, kws in rubric.items()}
+    scores["overall"] = round(sum(scores.values()) / len(scores), 2)
+    return scores
+
+
+def summarize_improve(findings: list[dict]) -> dict:
+    """Report detection count, tool/severity breakdown, explanation coverage."""
+    if not findings:
+        return {"total": 0}
+
+    tools: dict[str, int] = {}
+    severities: dict[str, int] = {}
+    explained = 0
+
+    for f in findings:
+        tools[f.get("tool", "unknown")] = tools.get(f.get("tool", "unknown"), 0) + 1
+        sev = f.get("severity", "unknown")
+        severities[sev] = severities.get(sev, 0) + 1
+        if f.get("explanation", "").strip():
+            explained += 1
+
+    return {
+        "total": len(findings),
+        "by_tool": tools,
+        "by_severity": severities,
+        "explanation_coverage": round(explained / len(findings), 3),
+    }
+
+
+def run_phase_2():
+    import sqlite3
+
+    sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
+    from app.core.config import settings
+
+    gold_sets = load_gold_sets()
+    if not gold_sets:
+        print("No gold sets found in eval/gold_set/.")
+        return
+
+    all_results = []
+    for gs in gold_sets:
+        repo_id = gs["repo_id"]
+        pairs = gs["pairs"]
+        print(f"\nEvaluating repo: {repo_id} ({len(pairs)} pairs)")
+
+        print("  Running retrieval eval (same as Phase 1)...")
+        retrieval = run_retrieval_eval(repo_id, pairs)
+
+        print("  Scoring Understand rubric...")
+        conn = sqlite3.connect(str(settings.db_path))
+        row = conn.execute(
+            "SELECT understand, improve FROM repos WHERE repo_id = ?", (repo_id,)
+        ).fetchone()
+        conn.close()
+
+        if not row:
+            print(f"  Repo {repo_id} not in DB — skipping Understand/Improve eval.")
+            understand_scores = {"note": "not in DB"}
+            improve_summary = {"note": "not in DB"}
+        else:
+            understand_raw, improve_raw = row
+            understand_scores = score_understand(repo_id, understand_raw or "")
+            improve_findings = json.loads(improve_raw or "[]")
+            improve_summary = summarize_improve(improve_findings)
+
+        result = {
+            "repo_id": repo_id,
+            "retrieval": retrieval,
+            "understand": understand_scores,
+            "improve": improve_summary,
+        }
+        all_results.append(result)
+        print(f"  retrieval:  {retrieval}")
+        print(f"  understand: {understand_scores}")
+        print(f"  improve:    {improve_summary}")
+
+    RESULTS_DIR.mkdir(exist_ok=True)
+    out = RESULTS_DIR / "phase2_results.json"
+    out.write_text(json.dumps(all_results, indent=2))
+    print(f"\nResults saved to {out}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="LexrAI Eval Harness")
     parser.add_argument("--phase", type=int, required=True, choices=[1, 2, 3])
@@ -125,6 +241,8 @@ def main():
 
     if args.phase == 1:
         run_phase_1()
+    elif args.phase == 2:
+        run_phase_2()
     else:
         print(f"Phase {args.phase} harness not yet implemented.")
 

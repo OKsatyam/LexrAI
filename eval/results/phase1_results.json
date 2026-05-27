@@ -1,0 +1,15 @@
+[
+  {
+    "repo_id": "1f527efd5350",
+    "n_pairs": 20,
+    "code_aware": {
+      "hit@1": 0.55,
+      "hit@3": 0.9,
+      "hit@5": 0.9,
+      "mrr": 0.7167
+    },
+    "naive": {
+      "note": "skipped \u2014 repo docs not available for naive baseline"
+    }
+  }
+]
