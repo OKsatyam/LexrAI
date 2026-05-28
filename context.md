@@ -7,12 +7,12 @@ Update after every meaningful change: new module, design decision, API/schema ch
 
 ## Current State
 
-- **Phase:** Phase 2 DONE — eval passed. Ready for Phase 3.
-- **Last completed:** Phase 2 eval ran — Understand rubric 3.68/5, 20 Improve findings, 100% explanation coverage. Full UI with 3 tabs live.
-- **Next:** Phase 3 — LangGraph `StateGraph` agent for Improve, LangSmith tracing, bounded agentic loop.
-- **Known minor issue:** `datetime.utcnow()` deprecation warning in `backend/app/storage/db.py:62` — non-blocking, fix when convenient.
+- **Phase:** Phase 3 DONE — all three phases complete. Demo-ready.
+- **Last completed:** Phase 3 LangGraph agent implemented and eval ran. Agent completes in 1–2 iterations for pallets/click. 20 findings (ruff + bandit), 100% explanation coverage, Hit@3=0.90 (unchanged), MRR=0.717.
+- **Next:** Demo / submission. Optional polish: production UI, Tier 1 controlled repo, naive baseline fix.
+- **Known minor issue:** `datetime.utcnow()` deprecation warning in `backend/app/storage/db.py:75` — non-blocking.
 - **Naive baseline:** harness skips naive comparison because `load_repo` lacks `__wrapped__` — fix before final report.
-- **Precision/recall:** Needs Tier 1 controlled repo with planted bugs — deferred to Phase 3 eval.
+- **Precision/recall:** Needs Tier 1 controlled repo with planted bugs — deferred post-demo.
 
 ---
 
@@ -82,12 +82,14 @@ GET    /health                   → { status: "ok" }
 ```sql
 -- repos table
 CREATE TABLE repos (
-    repo_id      TEXT PRIMARY KEY,   -- MD5(github_url)[:12]
-    github_url   TEXT,
-    status       TEXT,               -- pending | running | done | failed
-    understand   TEXT,               -- JSON summary (null until ingest done)
-    improve      TEXT,               -- JSON findings (null until ingest done)
-    ingested_at  TIMESTAMP
+    repo_id          TEXT PRIMARY KEY,   -- MD5(github_url)[:12]
+    github_url       TEXT,
+    status           TEXT,               -- pending | running | done | failed
+    understand       TEXT,               -- JSON summary (null until ingest done)
+    improve          TEXT,               -- JSON findings (null until agent done)
+    ingested_at      TIMESTAMP,
+    improve_status   TEXT DEFAULT 'idle',    -- idle | pending | running | done | failed
+    improve_progress TEXT DEFAULT ''         -- current agent step description
 );
 
 -- conversations table managed by SQLChatMessageHistory (LangChain)
@@ -213,16 +215,33 @@ Note: Improve shows only Radon findings for click (a well-maintained library). R
 5. ✅ Next.js UI: all 3 tabs usable (Understand / Explore / Improve)
 6. ✅ Eval harness rerun: Understand rubric + Improve summary recorded
 
-### Phase 3 — LangGraph Agent
+### Phase 3 — LangGraph Agent ✅ DONE
 
 **Scope:** Improve becomes agentic, LangSmith tracing.
 
+**Eval results** (`eval/results/phase3_results.json`) — repo: `pallets/click`:
+| Metric | Value |
+|---|---|
+| Hit@1 | 0.55 |
+| Hit@3 / Hit@5 | 0.90 |
+| MRR | 0.717 |
+| Improve findings (agentic) | 20 (ruff: 11, bandit: 9) |
+| Explanation coverage | 100% |
+| Iterations used | 1–2 (of max 5) |
+
+Note: Phase 3 agent runs ruff + bandit in ≤2 iterations for click. Radon not triggered (LLM decides it's not needed after ruff+bandit). Phase 2 had only radon findings (run_all was called); Phase 3 agentic run finds ruff + bandit issues too — broader coverage.
+
+**New API contracts (Phase 3):**
+- `POST /improve { repo_id }` → 202, triggers background agent
+- `GET /improve/{repo_id}/status` → `{ status, progress }`
+- `GET /improve?repo_id=...` → unchanged (returns findings when done)
+
 **Done when ALL of these hold:**
-1. LangGraph `StateGraph` agent replaces static Improve pipeline
-2. Ruff / Bandit / Radon invoked as agent tool nodes
-3. Agentic loop bounded: capped iterations + inter-call delay
-4. LangSmith tracing active
-5. Eval: single-shot vs agentic comparison recorded
+1. ✅ LangGraph `StateGraph` agent replaces static Improve pipeline
+2. ✅ Ruff / Bandit / Radon invoked as agent tool nodes
+3. ✅ Agentic loop bounded: capped iterations (5) + 2s inter-call delay
+4. ✅ LangSmith tracing active (env vars set in config.py before LangChain import)
+5. ✅ Eval: single-shot vs agentic comparison recorded
 
 ---
 
