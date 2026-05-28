@@ -16,14 +16,27 @@ def init_db() -> None:
     with _connect() as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS repos (
-                repo_id     TEXT PRIMARY KEY,
-                github_url  TEXT NOT NULL,
-                status      TEXT NOT NULL DEFAULT 'pending',
-                understand  TEXT,
-                improve     TEXT,
-                ingested_at TEXT
+                repo_id         TEXT PRIMARY KEY,
+                github_url      TEXT NOT NULL,
+                status          TEXT NOT NULL DEFAULT 'pending',
+                understand      TEXT,
+                improve         TEXT,
+                ingested_at     TEXT,
+                improve_status  TEXT NOT NULL DEFAULT 'idle',
+                improve_progress TEXT NOT NULL DEFAULT ''
             )
         """)
+        # Migration: add columns to existing DBs that lack them
+        for col, default in [
+            ("improve_status", "'idle'"),
+            ("improve_progress", "''"),
+        ]:
+            try:
+                conn.execute(
+                    f"ALTER TABLE repos ADD COLUMN {col} TEXT NOT NULL DEFAULT {default}"
+                )
+            except sqlite3.OperationalError:
+                pass  # column already exists
         conn.commit()
 
 
@@ -60,5 +73,14 @@ def update_repo_summaries(repo_id: str, understand: str, improve: str) -> None:
                SET understand = ?, improve = ?, status = 'done', ingested_at = ?
                WHERE repo_id = ?""",
             (understand, improve, datetime.utcnow().isoformat(), repo_id),
+        )
+        conn.commit()
+
+
+def set_improve_status(repo_id: str, status: str, progress: str) -> None:
+    with _connect() as conn:
+        conn.execute(
+            "UPDATE repos SET improve_status = ?, improve_progress = ? WHERE repo_id = ?",
+            (status, progress, repo_id),
         )
         conn.commit()
