@@ -234,6 +234,82 @@ def run_phase_2():
     print(f"\nResults saved to {out}")
 
 
+def run_phase_3(base_url: str = "http://localhost:8000") -> None:
+    """
+    Phase 3 eval: trigger the agentic Improve pipeline via live server,
+    wait for completion, compare results against Phase 2 single-shot.
+    Requires the backend server to be running.
+    """
+    import time
+    import urllib.request
+    import urllib.error
+
+    gold_sets = load_gold_sets()
+    if not gold_sets:
+        print("No gold sets found.")
+        return
+
+    all_results = []
+    for gs in gold_sets:
+        repo_id = gs["repo_id"]
+        print(f"\nEvaluating repo: {repo_id}")
+
+        # Trigger agent
+        print("  Triggering POST /improve...")
+        req = urllib.request.Request(
+            f"{base_url}/improve",
+            data=json.dumps({"repo_id": repo_id}).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req)
+        except urllib.error.HTTPError as e:
+            print(f"  Error triggering: {e.code} {e.reason}")
+            continue
+
+        # Poll status
+        print("  Polling status...")
+        status_data = {"status": "unknown", "progress": ""}
+        for _ in range(120):  # max 4 min
+            time.sleep(2)
+            with urllib.request.urlopen(f"{base_url}/improve/{repo_id}/status") as r:
+                status_data = json.loads(r.read())
+            print(f"    {status_data['status']}: {status_data['progress']}")
+            if status_data["status"] in ("done", "failed"):
+                break
+
+        if status_data["status"] != "done":
+            print(f"  Agent failed or timed out: {status_data}")
+            continue
+
+        # Fetch findings
+        with urllib.request.urlopen(f"{base_url}/improve?repo_id={repo_id}") as r:
+            findings_data = json.loads(r.read())
+        findings = findings_data.get("findings", [])
+
+        improve_summary = summarize_improve(findings)
+
+        # Retrieval eval (same as phase 1 and 2)
+        print("  Running retrieval eval...")
+        retrieval = run_retrieval_eval(repo_id, gs["pairs"])
+
+        result = {
+            "repo_id": repo_id,
+            "retrieval": retrieval,
+            "improve_agentic": improve_summary,
+            "note": "Compare improve_agentic vs phase2_results.json improve field for single-shot vs agentic diff",
+        }
+        all_results.append(result)
+        print(f"  retrieval: {retrieval}")
+        print(f"  improve:   {improve_summary}")
+
+    RESULTS_DIR.mkdir(exist_ok=True)
+    out = RESULTS_DIR / "phase3_results.json"
+    out.write_text(json.dumps(all_results, indent=2))
+    print(f"\nResults saved to {out}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="LexrAI Eval Harness")
     parser.add_argument("--phase", type=int, required=True, choices=[1, 2, 3])
@@ -243,6 +319,8 @@ def main():
         run_phase_1()
     elif args.phase == 2:
         run_phase_2()
+    elif args.phase == 3:
+        run_phase_3()
     else:
         print(f"Phase {args.phase} harness not yet implemented.")
 
