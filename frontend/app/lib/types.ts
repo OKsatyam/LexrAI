@@ -8,7 +8,7 @@ export interface StoredRepo {
   owner: string;
   name: string;
   status: RepoStatus;
-  ingestedAt: string;       // ISO timestamp
+  ingestedAt: string;
   understandDone: boolean;
   improveFindingsCount: number | null;
 }
@@ -16,7 +16,7 @@ export interface StoredRepo {
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
-  sources?: string[];
+  sources?: Source[];
   timestamp: string;
 }
 
@@ -25,29 +25,30 @@ export interface IngestResponse {
 }
 
 export interface IngestStatusResponse {
-  repo_id: string;
-  status: "pending" | "running" | "done" | "failed";
-  progress: number;
-  error?: string;
+  status: string;    // "pending"|"cloning"|"chunking"|"indexing"|"analysing"|"generating"|"done"|"failed"
+  progress: string;  // human-readable string e.g. "Cloning repository..."
 }
 
 export interface UnderstandResponse {
   repo_id: string;
   summary: string;
-  key_concepts: string[];
-  structure: Record<string, string[]>;
-  language_breakdown: Record<string, number>;
+}
+
+export interface Source {
+  file: string;
+  lines: string;
+  snippet: string;
 }
 
 export interface ExploreResponse {
-  repo_id: string;
   answer: string;
-  sources: string[];
+  sources: Source[];
+  conversation_id: string;
 }
 
 export interface Finding {
-  tool: "ruff" | "bandit" | "radon";
-  severity: "high" | "medium" | "low";
+  tool: string;
+  severity: string;
   file: string;
   line: number;
   message: string;
@@ -55,11 +56,8 @@ export interface Finding {
 }
 
 export interface ImproveStatusResponse {
-  repo_id: string;
-  status: "pending" | "running" | "done" | "failed";
-  progress: number;
-  tools_run: string[];
-  iterations: number;
+  status: string;    // "idle"|"pending"|"running"|"done"|"failed"
+  progress: string;  // human-readable string
 }
 
 export interface ImproveResponse {

@@ -25,7 +25,7 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
 export function ingestRepo(repoUrl: string): Promise<IngestResponse> {
   return req("/ingest", {
     method: "POST",
-    body: JSON.stringify({ repo_url: repoUrl }),
+    body: JSON.stringify({ github_url: repoUrl }),
   });
 }
 
