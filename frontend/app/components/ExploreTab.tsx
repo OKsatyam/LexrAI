@@ -52,14 +52,10 @@ function SourceChip({ source }: { source: Source }) {
 }
 
 export default function ExploreTab({ repoId }: { repoId: string }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => getChat(repoId));
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setMessages(getChat(repoId));
-  }, [repoId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });

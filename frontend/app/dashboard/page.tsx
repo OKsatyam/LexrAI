@@ -19,7 +19,7 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    loadRepos();
+    loadRepos(); // eslint-disable-line react-hooks/set-state-in-effect
   }, [loadRepos]);
 
   return (
