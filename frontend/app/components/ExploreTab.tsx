@@ -51,11 +51,25 @@ function SourceChip({ source }: { source: Source }) {
   );
 }
 
-export default function ExploreTab({ repoId }: { repoId: string }) {
+interface Props {
+  repoId: string;
+  pendingQuestion?: string;
+  onClearPending?: () => void;
+}
+
+export default function ExploreTab({ repoId, pendingQuestion, onClearPending }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => getChat(repoId));
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [conversationId, setConversationId] = useState<string | undefined>(undefined);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (pendingQuestion) {
+      setInput(pendingQuestion); // eslint-disable-line react-hooks/set-state-in-effect
+      onClearPending?.();
+    }
+  }, [pendingQuestion, onClearPending]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -77,7 +91,8 @@ export default function ExploreTab({ repoId }: { repoId: string }) {
     setLoading(true);
 
     try {
-      const res = await explore(repoId, q);
+      const res = await explore(repoId, q, conversationId);
+      setConversationId(res.conversation_id);
       const aiMsg: ChatMessage = {
         role: "assistant",
         content: res.answer,

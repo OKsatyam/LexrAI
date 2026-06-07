@@ -1,3 +1,4 @@
+import chromadb
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -12,13 +13,17 @@ def get_embeddings() -> HuggingFaceEmbeddings:
     )
 
 
-def index_documents(repo_id: str, chunks: list[Document]) -> Chroma:
+def _chroma_client() -> chromadb.PersistentClient:
     settings.chroma_dir.mkdir(parents=True, exist_ok=True)
+    return chromadb.PersistentClient(path=str(settings.chroma_dir))
+
+
+def index_documents(repo_id: str, chunks: list[Document]) -> Chroma:
     return Chroma.from_documents(
         documents=chunks,
         embedding=get_embeddings(),
         collection_name=f"repo_{repo_id}",
-        persist_directory=str(settings.chroma_dir),
+        client=_chroma_client(),
     )
 
 
@@ -26,5 +31,5 @@ def get_vectorstore(repo_id: str) -> Chroma:
     return Chroma(
         collection_name=f"repo_{repo_id}",
         embedding_function=get_embeddings(),
-        persist_directory=str(settings.chroma_dir),
+        client=_chroma_client(),
     )

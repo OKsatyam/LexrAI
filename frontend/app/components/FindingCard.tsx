@@ -15,7 +15,7 @@ const severityLabel: Record<string, string> = {
   low: "LOW",
 };
 
-export default function FindingCard({ finding }: { finding: Finding }) {
+export default function FindingCard({ finding, onAsk }: { finding: Finding; onAsk?: (q: string) => void }) {
   const [expanded, setExpanded] = useState(false);
   const color = severityBorderColor[finding.severity] ?? "var(--border2)";
   const label = severityLabel[finding.severity] ?? finding.severity.toUpperCase();
@@ -86,6 +86,24 @@ export default function FindingCard({ finding }: { finding: Finding }) {
           </span>
         </div>
       </div>
+
+      {/* Ask → button */}
+      {onAsk && (
+        <button
+          onClick={() => onAsk(
+            `Explain this ${finding.tool} finding in ${finding.file} at line ${finding.line}: "${finding.message}". Why is this a ${finding.severity} severity issue? Is it a real problem or a false positive? How should I fix it?`
+          )}
+          style={{
+            background: "none", border: "none",
+            cursor: "pointer", fontFamily: "var(--font-mono), monospace",
+            fontSize: "11px", color: "var(--green)",
+            padding: "6px 0 0", letterSpacing: "0.05em",
+            display: "block",
+          }}
+        >
+          Ask in Explore →
+        </button>
+      )}
 
       {finding.explanation && (
         <>

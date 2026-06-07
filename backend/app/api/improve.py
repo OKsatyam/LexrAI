@@ -3,6 +3,11 @@ import json
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
+from app.analysis.llm_review import run_llm_review
+from app.analysis.tools import detect_languages, run_all_multilang
+from app.core.config import settings
+from app.ingestion.loader import load_from_path
+from app.pillars.improve import generate_improve
 from app.pillars.improve_agent import run_improve_agent
 from app.storage.db import get_repo, set_improve_status, update_repo_summaries
 
@@ -41,9 +46,29 @@ class ImproveStatusResponse(BaseModel):
 
 
 def _run_improve_job(repo_id: str) -> None:
-    set_improve_status(repo_id, "running", "Agent running...")
+    set_improve_status(repo_id, "running", "Detecting languages...")
     try:
-        findings = run_improve_agent(repo_id)
+        repo_path = settings.repos_dir / repo_id
+        languages = detect_languages(repo_path)
+
+        if "python" in languages:
+            # LangGraph agent for Python (handles ruff+bandit+radon iteratively)
+            set_improve_status(repo_id, "running", "Agent running...")
+            findings = run_improve_agent(repo_id)
+            # Supplement with LLM review for non-Python files in mixed repos
+            if len(languages) > 1:
+                docs = load_from_path(repo_path)
+                llm = run_llm_review(docs, languages)
+                findings = findings + llm
+        else:
+            # Non-Python: CLI tools (ESLint etc.) + LLM review
+            set_improve_status(repo_id, "running", "Running analysis...")
+            cli_findings = run_all_multilang(repo_path, languages)
+            cli_explained = generate_improve(cli_findings)
+            docs = load_from_path(repo_path)
+            llm_findings = run_llm_review(docs, languages)
+            findings = cli_explained + llm_findings
+
         repo = get_repo(repo_id)
         update_repo_summaries(
             repo_id,

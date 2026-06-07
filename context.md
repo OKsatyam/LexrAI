@@ -7,12 +7,12 @@ Update after every meaningful change: new module, design decision, API/schema ch
 
 ## Current State
 
-- **Phase:** Phase 3 DONE — all three phases complete. Demo-ready.
-- **Last completed:** Phase 3 LangGraph agent implemented and eval ran. Agent completes in 1–2 iterations for pallets/click. 20 findings (ruff + bandit), 100% explanation coverage, Hit@3=0.90 (unchanged), MRR=0.717.
-- **Next:** Demo / submission. Optional polish: production UI, Tier 1 controlled repo, naive baseline fix.
-- **Known minor issue:** `datetime.utcnow()` deprecation warning in `backend/app/storage/db.py:75` — non-blocking.
-- **Naive baseline:** harness skips naive comparison because `load_repo` lacks `__wrapped__` — fix before final report.
-- **Precision/recall:** Needs Tier 1 controlled repo with planted bugs — deferred post-demo.
+- **Phase:** Phase 3 DONE + significant post-phase extensions built. Locally functional.
+- **Last completed:** Multi-language analysis, adaptive understand, explore edge cases, file upload, performance tuning (chunk size 1500, cap 2000, better dir filtering), deprecation fixes, improve agent language routing.
+- **Next:** Polish, commit, demo prep.
+- **Known issues (non-blocking):** Naive baseline eval skipped (`load_repo.__wrapped__` absent). Precision/recall deferred.
+- **Backend:** Running on `localhost:8000`. Storage at `LOCALAPPDATA\LexrAI\storage` (outside OneDrive).
+- **Frontend:** Running on `localhost:3000`. `.env.local` points to `http://localhost:8000`.
 
 ---
 
@@ -69,6 +69,8 @@ POST   /explore                  { repo_id, question, conversation_id? }
        → { answer, sources, conversation_id }
        → conversation_id: server-generates on first call (omit to start new session)
        → sources: [{ file, lines, snippet }]
+       → Frontend stores returned conversation_id in component state and echoes
+         it on subsequent calls — SQLChatMessageHistory multi-turn memory active.
 
 GET    /health                   → { status: "ok" }
 ```
@@ -157,7 +159,7 @@ lexrai/                     ← monorepo root
       repos/
     tests/                  ← mirrors app/ structure
     requirements.txt
-  frontend/                 ← Next.js App Router
+  frontend/                 ← Next.js App Router (see Frontend section below)
   eval/
     tier1_repos/            ← controlled repos with planted issues
     gold_set/               ← ~20–25 Q&A pairs with known answers
@@ -165,6 +167,64 @@ lexrai/                     ← monorepo root
     results/                ← metrics per phase
   docs/
 ```
+
+---
+
+## Frontend
+
+**Stack:** Next.js 16.2.6 (App Router, Turbopack), React 19, TypeScript, Tailwind v4, shadcn/ui (New York), Framer Motion, GSAP, Syne + IBM Plex Mono fonts.
+
+**Theme:** Terminal-noir — dark background, green (`--green: #00FF87`) accent, monospace typography, circuit-corner SVG decorations, scanline overlay.
+
+**Pages:**
+
+| Route | File | Purpose |
+|---|---|---|
+| `/` | `app/page.tsx` | Landing — GSAP hero reveal, GitHub URL input, ingest trigger, redirect to `/dashboard` |
+| `/dashboard` | `app/dashboard/page.tsx` | Repo grid (stagger animation), empty state, Add Repo modal |
+| `/repos/[id]` | `app/repos/[id]/page.tsx` | 3-tab detail view: Understand / Explore / Improve |
+| `*` | `app/not-found.tsx` | 404 page |
+
+**Components:**
+
+| File | Purpose |
+|---|---|
+| `Nav.tsx` | Sticky top bar, logo, green accent |
+| `RepoCard.tsx` | Circuit-corner card; polls ingest status; navigates to detail only when `status === "done"` |
+| `SkeletonCard.tsx` | Placeholder during dashboard load |
+| `AddRepoModal.tsx` | shadcn Dialog; triggers ingest, saves to localStorage |
+| `EmptyDashboard.tsx` | Zero-state with CTA |
+| `UnderstandTab.tsx` | Fetches `/understand`, renders markdown summary with shimmer skeleton |
+| `ExploreTab.tsx` | Chat UI; localStorage history; passes `conversation_id` on subsequent turns for server memory |
+| `ImproveTab.tsx` | 4 states: idle / running / done / failed; triggers agent, polls status |
+| `FindingCard.tsx` | Severity-coded (ruff/bandit/radon), expandable explanation |
+
+**Hooks:**
+
+| File | Purpose |
+|---|---|
+| `hooks/useIngestPoller.ts` | Polls `/ingest/{id}/status` when `active=true`; fires callback on update/completion |
+| `hooks/useImprovePoller.ts` | Polls `/improve/{id}/status`; fires callbacks on progress and completion |
+
+**Shared lib:**
+
+| File | Purpose |
+|---|---|
+| `lib/types.ts` | TypeScript types for all API responses + localStorage shapes |
+| `lib/api.ts` | Typed fetch wrapper for all 7 endpoints; BASE URL from `NEXT_PUBLIC_API_BASE` env var (falls back to `http://localhost:8000`) |
+| `lib/repos.ts` | localStorage helpers — repo list + per-repo chat history |
+
+**Backend switching:**
+- `frontend/.env.local` → `NEXT_PUBLIC_API_BASE=` (empty) → calls Next.js mock routes at `/api/*`
+- Delete `.env.local` or set `NEXT_PUBLIC_API_BASE=http://localhost:8000` → calls real backend
+
+**Mock routes** (for frontend-only dev/testing): `frontend/app/api/` — mirrors all 7 backend endpoints with realistic fixture data and stateful polling progression (module-level call counters per repo ID).
+
+**Next.js 16 breaking changes applied:**
+- `params` is a `Promise` in route handlers → must `await params`
+- `params` in client page components → must `React.use(params)`
+
+**Known gap (pre-backend-connect):** `conversation_id` now correctly passed on explore turns — first call omits it (server generates), subsequent calls echo it back (server loads `SQLChatMessageHistory`). Fixed 2026-05-31.
 
 ---
 

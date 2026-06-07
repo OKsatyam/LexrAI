@@ -8,7 +8,7 @@ import type {
   ImproveResponse,
 } from "./types";
 
-const BASE = "http://localhost:8000";
+const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
 async function req<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
@@ -29,6 +29,26 @@ export function ingestRepo(repoUrl: string): Promise<IngestResponse> {
   });
 }
 
+// ingestLocal (path-based) removed — replaced by ingestUpload (browser file picker)
+
+export async function ingestUpload(files: FileList): Promise<IngestResponse> {
+  const form = new FormData();
+  for (const file of Array.from(files)) {
+    // webkitRelativePath preserves folder structure (e.g. "myapp/src/main.py")
+    form.append("files", file, file.webkitRelativePath || file.name);
+  }
+  const res = await fetch(`${BASE}/ingest/upload`, {
+    method: "POST",
+    body: form,
+    // No Content-Type — browser sets multipart/form-data + boundary automatically
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => res.statusText);
+    throw new Error(`${res.status}: ${text}`);
+  }
+  return res.json() as Promise<IngestResponse>;
+}
+
 export function getIngestStatus(repoId: string): Promise<IngestStatusResponse> {
   return req(`/ingest/${repoId}/status`);
 }
@@ -37,10 +57,18 @@ export function getUnderstanding(repoId: string): Promise<UnderstandResponse> {
   return req(`/understand?repo_id=${repoId}`);
 }
 
-export function explore(repoId: string, question: string): Promise<ExploreResponse> {
+export function explore(
+  repoId: string,
+  question: string,
+  conversationId?: string,
+): Promise<ExploreResponse> {
   return req("/explore", {
     method: "POST",
-    body: JSON.stringify({ repo_id: repoId, question }),
+    body: JSON.stringify({
+      repo_id: repoId,
+      question,
+      ...(conversationId ? { conversation_id: conversationId } : {}),
+    }),
   });
 }
 

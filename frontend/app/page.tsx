@@ -4,23 +4,21 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
-import { ingestRepo } from "./lib/api";
+import { ingestRepo, ingestUpload } from "./lib/api";
 import { saveRepo } from "./lib/repos";
-import type { StoredRepo } from "./lib/types";
 
 const GITHUB_RE = /^https?:\/\/github\.com\/([^/]+)\/([^/]+?)\/?$/;
-
-function parseGitHub(url: string): { owner: string; name: string } | null {
-  const m = url.trim().match(GITHUB_RE);
-  if (!m) return null;
-  return { owner: m[1], name: m[2] };
-}
+type Mode = "github" | "folder" | "files";
 
 export default function LandingPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<Mode>("github");
   const [url, setUrl] = useState("");
+  const [picked, setPicked] = useState<FileList | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const folderRef = useRef<HTMLInputElement>(null);
+  const filesRef = useRef<HTMLInputElement>(null);
 
   const logoRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -45,33 +43,35 @@ export default function LandingPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-
-    const parsed = parseGitHub(url);
-    if (!parsed) {
-      setError("Enter a valid GitHub URL: https://github.com/owner/repo");
-      return;
-    }
-
     setLoading(true);
     try {
-      const { repo_id } = await ingestRepo(url.trim());
-      const repo: StoredRepo = {
-        id: repo_id,
-        repoUrl: url.trim(),
-        owner: parsed.owner,
-        name: parsed.name,
-        status: "ingesting",
-        ingestedAt: new Date().toISOString(),
-        understandDone: false,
-        improveFindingsCount: null,
-      };
-      saveRepo(repo);
+      if (mode === "github") {
+        const val = url.trim();
+        const m = val.match(GITHUB_RE);
+        if (!m) { setError("Enter a valid GitHub URL: https://github.com/owner/repo"); setLoading(false); return; }
+        const { repo_id } = await ingestRepo(val);
+        saveRepo({ id: repo_id, repoUrl: val, owner: m[1], name: m[2],
+          status: "ingesting", ingestedAt: new Date().toISOString(),
+          understandDone: false, improveFindingsCount: null });
+      } else {
+        if (!picked || picked.length === 0) { setError("Pick at least one file"); setLoading(false); return; }
+        const { repo_id } = await ingestUpload(picked);
+        const first = picked[0].webkitRelativePath || picked[0].name;
+        const name = mode === "folder"
+          ? first.split("/")[0]
+          : (picked.length === 1 ? picked[0].name : `${picked.length} files`);
+        saveRepo({ id: repo_id, repoUrl: `upload://${repo_id}`, owner: "local", name,
+          status: "ingesting", ingestedAt: new Date().toISOString(),
+          understandDone: false, improveFindingsCount: null });
+      }
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start ingest. Is the backend running?");
+      setError(err instanceof Error ? err.message : "Failed. Is the backend running?");
       setLoading(false);
     }
   }
+
+  const canSubmit = !loading && (mode === "github" ? url.trim().length > 0 : (picked?.length ?? 0) > 0);
 
   return (
     <main
@@ -176,80 +176,109 @@ export default function LandingPage() {
           Explore. Question. Improve.
         </p>
 
+        {/* Hidden file inputs */}
+        {/* @ts-expect-error webkitdirectory not in TS types */}
+        <input ref={folderRef} type="file" webkitdirectory="" multiple style={{ display: "none" }}
+          onChange={(e) => setPicked(e.target.files)} />
+        <input ref={filesRef} type="file" multiple style={{ display: "none" }}
+          onChange={(e) => setPicked(e.target.files)} />
+
         {/* Form */}
         <form ref={formRef} onSubmit={handleSubmit}>
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              marginBottom: "8px",
-            }}
-          >
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://github.com/owner/repo"
-              disabled={loading}
-              style={{
-                flex: 1,
-                background: "var(--surface)",
-                border: `1px solid ${error ? "var(--red-soft)" : "var(--border)"}`,
-                borderRadius: "6px",
-                padding: "12px 16px",
-                fontFamily: "var(--font-mono), monospace",
-                fontSize: "14px",
-                color: "var(--text)",
-                outline: "none",
-                transition: "border-color 0.15s",
-              }}
-              onFocus={(e) => {
-                if (!error) e.currentTarget.style.borderColor = "var(--green)";
-              }}
-              onBlur={(e) => {
-                if (!error) e.currentTarget.style.borderColor = "var(--border)";
-              }}
-            />
-            <button
-              type="submit"
-              disabled={loading || !url.trim()}
-              style={{
-                background: "transparent",
-                border: "1px solid var(--green)",
-                borderRadius: "6px",
-                padding: "12px 20px",
-                fontFamily: "var(--font-mono), monospace",
-                fontSize: "13px",
-                fontWeight: 600,
-                color: "var(--green)",
-                cursor: loading ? "wait" : "pointer",
-                whiteSpace: "nowrap",
-                transition: "background 0.15s, color 0.15s",
-                letterSpacing: "0.05em",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "var(--green)";
-                e.currentTarget.style.color = "var(--black)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "var(--green)";
-              }}
-            >
-              {loading ? "INGESTING…" : "ANALYSE →"}
-            </button>
+          {/* Mode tabs */}
+          <div style={{ display: "flex", marginBottom: "10px" }}>
+            {([["github", "GITHUB"], ["folder", "FOLDER"], ["files", "FILES"]] as [Mode, string][]).map(([m, label], i) => (
+              <button key={m} type="button"
+                onClick={() => { setMode(m); setPicked(null); setUrl(""); setError(""); }}
+                style={{
+                  flex: 1, padding: "7px 0",
+                  background: mode === m ? "rgba(0,255,135,0.08)" : "transparent",
+                  border: `1px solid ${mode === m ? "var(--green)" : "var(--border)"}`,
+                  borderRadius: i === 0 ? "4px 0 0 4px" : i === 2 ? "0 4px 4px 0" : "0",
+                  fontFamily: "var(--font-mono), monospace", fontSize: "11px",
+                  fontWeight: mode === m ? 600 : 400,
+                  color: mode === m ? "var(--green)" : "var(--text-dim)",
+                  cursor: "pointer", letterSpacing: "0.08em",
+                }}
+              >{label}</button>
+            ))}
           </div>
 
+          {mode === "github" && (
+            <div style={{ display: "flex", gap: "8px", marginBottom: "8px" }}>
+              <input
+                type="url" value={url} onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://github.com/owner/repo" disabled={loading}
+                style={{
+                  flex: 1, background: "var(--surface)",
+                  border: `1px solid ${error ? "var(--red-soft)" : "var(--border)"}`,
+                  borderRadius: "6px", padding: "12px 16px",
+                  fontFamily: "var(--font-mono), monospace", fontSize: "14px",
+                  color: "var(--text)", outline: "none", transition: "border-color 0.15s",
+                }}
+                onFocus={(e) => { if (!error) e.currentTarget.style.borderColor = "var(--green)"; }}
+                onBlur={(e) => { if (!error) e.currentTarget.style.borderColor = "var(--border)"; }}
+              />
+              <button type="submit" disabled={!canSubmit} style={{
+                background: "transparent", border: "1px solid var(--green)",
+                borderRadius: "6px", padding: "12px 20px",
+                fontFamily: "var(--font-mono), monospace", fontSize: "13px",
+                fontWeight: 600, color: "var(--green)",
+                cursor: canSubmit ? "pointer" : "not-allowed",
+                whiteSpace: "nowrap", letterSpacing: "0.05em",
+              }}>
+                {loading ? "INGESTING…" : "ANALYSE →"}
+              </button>
+            </div>
+          )}
+
+          {(mode === "folder" || mode === "files") && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "8px" }}>
+              <button type="button"
+                onClick={() => (mode === "folder" ? folderRef : filesRef).current?.click()}
+                style={{
+                  background: "var(--surface)",
+                  border: `1px dashed ${picked ? "var(--green)" : "var(--border)"}`,
+                  borderRadius: "6px", padding: "14px 16px",
+                  fontFamily: "var(--font-mono), monospace", fontSize: "13px",
+                  color: picked ? "var(--green)" : "var(--text-dim)",
+                  cursor: "pointer", textAlign: "center",
+                }}
+              >
+                {picked && picked.length > 0
+                  ? `${mode === "folder"
+                      ? (picked[0].webkitRelativePath || picked[0].name).split("/")[0] + "/"
+                      : ""} ${picked.length} file${picked.length > 1 ? "s" : ""} selected`
+                  : mode === "folder"
+                    ? "Click to pick a folder →"
+                    : "Click to pick files (1 or more) →"}
+              </button>
+
+              {picked && picked.length > 0 && (
+                <div style={{ fontSize: "11px", color: "var(--text-muted)", textAlign: "left", maxHeight: "60px", overflowY: "auto" }}>
+                  {Array.from(picked).slice(0, 5).map((f, i) => (
+                    <div key={i}>{f.webkitRelativePath || f.name}</div>
+                  ))}
+                  {picked.length > 5 && <div style={{ color: "var(--text-dim)" }}>…and {picked.length - 5} more</div>}
+                </div>
+              )}
+
+              <button type="submit" disabled={!canSubmit} style={{
+                background: canSubmit ? "var(--green)" : "transparent",
+                border: `1px solid ${canSubmit ? "var(--green)" : "var(--border)"}`,
+                borderRadius: "6px", padding: "12px 20px",
+                fontFamily: "var(--font-mono), monospace", fontSize: "13px",
+                fontWeight: 600, color: canSubmit ? "var(--black)" : "var(--text-dim)",
+                cursor: canSubmit ? "pointer" : "not-allowed", letterSpacing: "0.05em",
+              }}>
+                {loading ? "UPLOADING…" : "ANALYSE →"}
+              </button>
+            </div>
+          )}
+
           {error && (
-            <p
-              style={{
-                fontFamily: "var(--font-mono), monospace",
-                fontSize: "12px",
-                color: "var(--red-soft)",
-                textAlign: "left",
-                marginTop: "4px",
-              }}
-            >
+            <p style={{ fontFamily: "var(--font-mono), monospace", fontSize: "12px",
+              color: "var(--red-soft)", textAlign: "left", marginTop: "4px" }}>
               {error}
             </p>
           )}
@@ -278,6 +307,21 @@ export default function LandingPage() {
               {s}
             </span>
           ))}
+        </div>
+        {/* Dashboard link */}
+        <div style={{ marginTop: "24px" }}>
+          <button
+            onClick={() => router.push("/dashboard")}
+            style={{
+              background: "none", border: "none",
+              fontFamily: "var(--font-mono), monospace",
+              fontSize: "12px", color: "var(--text-muted)",
+              cursor: "pointer", letterSpacing: "0.05em",
+              textDecoration: "underline", textUnderlineOffset: "3px",
+            }}
+          >
+            View previous analyses →
+          </button>
         </div>
       </div>
     </main>

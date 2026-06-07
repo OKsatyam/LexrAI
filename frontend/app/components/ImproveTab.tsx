@@ -9,7 +9,7 @@ import type { Finding, ImproveStatusResponse } from "../lib/types";
 
 type State = "idle" | "running" | "done" | "failed";
 
-export default function ImproveTab({ repoId }: { repoId: string }) {
+export default function ImproveTab({ repoId, onAsk }: { repoId: string; onAsk?: (q: string) => void }) {
   const [state, setState] = useState<State>("idle");
   const [pollData, setPollData] = useState<ImproveStatusResponse | null>(null);
   const [findings, setFindings] = useState<Finding[]>([]);
@@ -82,6 +82,10 @@ export default function ImproveTab({ repoId }: { repoId: string }) {
           Runs Ruff (linting), Bandit (security), and Radon (complexity).
           <br />
           An AI agent orchestrates the tools and explains each finding.
+          <br />
+          <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>
+            Static analysis targets Python files. Other languages get summary-only.
+          </span>
         </p>
         <button
           onClick={startAnalysis}
@@ -257,7 +261,7 @@ export default function ImproveTab({ repoId }: { repoId: string }) {
       </div>
 
       {[...high, ...medium, ...low, ...other].map((f, i) => (
-        <FindingCard key={i} finding={f} />
+        <FindingCard key={i} finding={f} onAsk={onAsk} />
       ))}
 
       {findings.length === 0 && (
@@ -268,9 +272,16 @@ export default function ImproveTab({ repoId }: { repoId: string }) {
             fontFamily: "var(--font-mono), monospace",
             fontSize: "13px",
             color: "var(--text-muted)",
+            lineHeight: 1.8,
           }}
         >
-          No findings. Clean codebase!
+          No findings detected.
+          <br />
+          <span style={{ fontSize: "11px" }}>
+            Either the code is clean, or no Python files were found for static analysis.
+            <br />
+            Ruff · Bandit · Radon run on Python only.
+          </span>
         </div>
       )}
     </div>

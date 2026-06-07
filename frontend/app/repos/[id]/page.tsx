@@ -27,6 +27,12 @@ export default function RepoDetailPage({
   const { id } = use(params);
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("understand");
+  const [pendingQuestion, setPendingQuestion] = useState("");
+
+  function handleAskFromImprove(q: string) {
+    setPendingQuestion(q);
+    setTab("explore");
+  }
 
   const repo = getRepoById(id);
   if (!repo) {
@@ -139,9 +145,29 @@ export default function RepoDetailPage({
           transition={{ duration: 0.2 }}
         >
           {tab === "understand" && <UnderstandTab repoId={id} />}
-          {tab === "explore" && <ExploreTab repoId={id} />}
-          {tab === "improve" && <ImproveTab repoId={id} />}
+          {tab === "explore" && (
+            <ExploreTab
+              repoId={id}
+              pendingQuestion={pendingQuestion}
+              onClearPending={() => setPendingQuestion("")}
+            />
+          )}
+          {tab === "improve" && <ImproveTab repoId={id} onAsk={handleAskFromImprove} />}
         </motion.div>
+
+        {/* AI disclaimer */}
+        <p style={{
+          fontFamily: "var(--font-mono), monospace",
+          fontSize: "11px",
+          color: "var(--text-muted)",
+          textAlign: "center",
+          marginTop: "48px",
+          lineHeight: 1.6,
+          opacity: 0.6,
+        }}>
+          ⚠ AI-generated analysis. Results may contain errors or false positives.
+          Always verify findings before acting on them.
+        </p>
       </main>
     </div>
   );

@@ -1,4 +1,7 @@
+import os
+import re
 import uuid
+from pathlib import Path
 
 from langchain_community.chat_message_histories import SQLChatMessageHistory
 from langchain_core.documents import Document
@@ -26,7 +29,44 @@ _PROMPT = ChatPromptTemplate.from_messages([
 def _get_history(conversation_id: str) -> SQLChatMessageHistory:
     return SQLChatMessageHistory(
         session_id=conversation_id,
-        connection_string=f"sqlite:///{settings.db_path}",
+        connection=f"sqlite:///{settings.db_path}",
+    )
+
+
+def _rel_path(abs_path: str, clone_root: str) -> str:
+    """Strip clone root prefix, normalize to forward slashes."""
+    if abs_path.startswith(clone_root):
+        rel = abs_path[len(clone_root):].lstrip(os.sep)
+        return rel.replace("\\", "/")
+    return abs_path
+
+
+def _lines_str(metadata: dict) -> str:
+    start = metadata.get("start_line")
+    end = metadata.get("end_line")
+    if start and end:
+        return f"{start}–{end}"
+    return ""
+
+
+_FILE_PATTERN = re.compile(
+    r'\b[\w\-]+\.(?:py|ts|tsx|js|jsx|go|rs|java|rb|cpp|c|cs|md|json|yaml|yml|toml)\b'
+)
+
+
+def _check_missing_files(question: str, docs: list[Document]) -> str:
+    """Return a warning string if the question mentions files not in the index."""
+    mentioned = set(_FILE_PATTERN.findall(question.lower()))
+    if not mentioned:
+        return ""
+    indexed = {Path(d.metadata.get("source", "")).name.lower() for d in docs}
+    missing = [f for f in mentioned if f not in indexed]
+    if not missing:
+        return ""
+    return (
+        f"\n\nNote: The following file(s) mentioned in the question were NOT found "
+        f"in the indexed codebase: {', '.join(missing)}. "
+        f"Answer based on what is available. If the file genuinely does not exist, say so."
     )
 
 
@@ -49,9 +89,10 @@ def answer_question(
 
     history = _get_history(conversation_id)
 
+    missing_note = _check_missing_files(question, docs)
     chain = _PROMPT | get_llm() | StrOutputParser()
     answer = chain.invoke({
-        "context": _format_docs(docs),
+        "context": _format_docs(docs) + missing_note,
         "question": question,
         "history": history.messages,
     })
@@ -59,10 +100,11 @@ def answer_question(
     history.add_user_message(question)
     history.add_ai_message(answer)
 
+    clone_root = str(settings.repos_dir / repo_id)
     sources = [
         {
-            "file": d.metadata.get("source", ""),
-            "lines": str(d.metadata.get("start_index", "")),
+            "file": _rel_path(d.metadata.get("source", ""), clone_root),
+            "lines": _lines_str(d.metadata),
             "snippet": d.page_content[:200],
         }
         for d in docs

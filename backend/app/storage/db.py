@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from app.core.config import settings
@@ -72,7 +72,7 @@ def update_repo_summaries(repo_id: str, understand: str, improve: str) -> None:
             """UPDATE repos
                SET understand = ?, improve = ?, status = 'done', ingested_at = ?
                WHERE repo_id = ?""",
-            (understand, improve, datetime.utcnow().isoformat(), repo_id),
+            (understand, improve, datetime.now(timezone.utc).isoformat(), repo_id),
         )
         conn.commit()
 

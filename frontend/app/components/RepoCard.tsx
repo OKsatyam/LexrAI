@@ -4,6 +4,8 @@ import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import type { StoredRepo } from "../lib/types";
+import { ingestRepo } from "../lib/api";
+import { updateRepo } from "../lib/repos";
 import { useIngestPoller } from "../hooks/useIngestPoller";
 
 function CircuitCorner({ pos }: { pos: "tl" | "tr" | "bl" | "br" }) {
@@ -51,12 +53,27 @@ interface Props {
 export default function RepoCard({ repo, onStatusChange }: Props) {
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   const handleUpdate = useCallback(() => {
     onStatusChange();
   }, [onStatusChange]);
 
   useIngestPoller(repo.id, repo.status === "ingesting", handleUpdate);
+
+  async function handleRetry(e: React.MouseEvent) {
+    e.stopPropagation();
+    setRetrying(true);
+    try {
+      await ingestRepo(repo.repoUrl);
+      updateRepo(repo.id, { status: "ingesting" });
+      onStatusChange();
+    } catch {
+      // leave as failed
+    } finally {
+      setRetrying(false);
+    }
+  }
 
   const color = statusColors[repo.status];
 
@@ -151,6 +168,32 @@ export default function RepoCard({ repo, onStatusChange }: Props) {
           <Pill label={`${repo.improveFindingsCount} FINDINGS`} />
         )}
       </div>
+
+      {/* Retry button — only on failed */}
+      {repo.status === "failed" && (
+        <button
+          onClick={handleRetry}
+          disabled={retrying}
+          style={{
+            marginTop: "8px",
+            background: "none",
+            border: "1px solid var(--red-soft)",
+            borderRadius: "4px",
+            padding: "5px 12px",
+            fontFamily: "var(--font-mono), monospace",
+            fontSize: "10px",
+            fontWeight: 600,
+            color: "var(--red-soft)",
+            cursor: retrying ? "wait" : "pointer",
+            letterSpacing: "0.08em",
+            alignSelf: "flex-start",
+            opacity: retrying ? 0.5 : 1,
+            transition: "opacity 0.15s",
+          }}
+        >
+          {retrying ? "RETRYING…" : "↻ RETRY"}
+        </button>
+      )}
     </motion.div>
   );
 }
