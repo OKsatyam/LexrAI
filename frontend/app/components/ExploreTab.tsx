@@ -223,9 +223,10 @@ export default function ExploreTab({ repoId, pendingQuestion, onClearPending }: 
           minWidth: 0,
         }}
       >
-        <input
+        <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && e.ctrlKey) handleSend(e as unknown as React.FormEvent); }}
           placeholder="Ask about the codebase…"
           disabled={loading}
           style={{
@@ -239,9 +240,9 @@ export default function ExploreTab({ repoId, pendingQuestion, onClearPending }: 
             fontSize: "13px",
             color: "var(--text)",
             outline: "none",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            resize: "vertical",
+            minHeight: "40px",
+            maxHeight: "120px",
           }}
         />
         <button
