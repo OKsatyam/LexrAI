@@ -7,12 +7,13 @@ Update after every meaningful change: new module, design decision, API/schema ch
 
 ## Current State
 
-- **Phase:** Phase 3 DONE + significant post-phase extensions built. Locally functional.
-- **Last completed:** Multi-language analysis, adaptive understand, explore edge cases, file upload, performance tuning (chunk size 1500, cap 2000, better dir filtering), deprecation fixes, improve agent language routing.
-- **Next:** Polish, commit, demo prep.
+- **Phase:** Phase 3 DONE + post-phase extensions complete. Committed at `49e8d32` on `dev`.
+- **Last completed:** All features committed — multi-language, file upload, UX improvements, performance tuning, deprecation fixes, improve agent routing, adaptive understand, explore edge cases.
+- **Next:** Go/Rust/Java CLI tools, test updates, naive baseline fix, demo prep, submission by June 10.
 - **Known issues (non-blocking):** Naive baseline eval skipped (`load_repo.__wrapped__` absent). Precision/recall deferred.
-- **Backend:** Running on `localhost:8000`. Storage at `LOCALAPPDATA\LexrAI\storage` (outside OneDrive).
-- **Frontend:** Running on `localhost:3000`. `.env.local` points to `http://localhost:8000`.
+- **Backend:** Start with `cd backend && uvicorn app.main:app --port 8000 --reload`. Storage at `LOCALAPPDATA\LexrAI\storage`.
+- **Frontend:** Start with `cd frontend && npm run dev`. Runs on `:3000`. `.env.local` → `NEXT_PUBLIC_API_BASE=http://localhost:8000`.
+- **API keys needed:** Create `backend/.env` with `GROQ_API_KEY=` and optionally `GEMINI_API_KEY=`, `LANGSMITH_API_KEY=`.
 
 ---
 

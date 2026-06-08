@@ -1,0 +1,89 @@
+<h2>Phase 3: ReAct StateGraph Design</h2>
+<p class="subtitle">How the agentic Improve pipeline flows — nodes, edges, state</p>
+
+<div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;">
+
+  <!-- Graph diagram -->
+  <div style="flex:1;min-width:320px;">
+    <h3>StateGraph</h3>
+    <div style="background:#0f172a;border-radius:12px;padding:24px;font-family:monospace;font-size:13px;line-height:2;">
+
+      <div style="text-align:center;margin-bottom:8px;">
+        <span style="background:#1e3a5f;color:#60a5fa;padding:4px 16px;border-radius:20px;">START</span>
+      </div>
+      <div style="text-align:center;color:#475569;">↓</div>
+
+      <div style="text-align:center;margin:4px 0;">
+        <span style="background:#1e293b;color:#e2e8f0;padding:6px 20px;border-radius:8px;border:1px solid #334155;">
+          <span style="color:#a78bfa;">decide_node</span> — LLM picks next tool or "done"
+        </span>
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:8px;margin:4px 0;color:#475569;">
+        <span>↙</span><span>↓</span><span>↘</span><span style="margin-left:16px;">↓ done / iter≥5</span>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:center;margin:4px 0;">
+        <span style="background:#1e293b;color:#34d399;padding:4px 12px;border-radius:8px;border:1px solid #065f46;">ruff_node</span>
+        <span style="background:#1e293b;color:#f59e0b;padding:4px 12px;border-radius:8px;border:1px solid #78350f;">bandit_node</span>
+        <span style="background:#1e293b;color:#f87171;padding:4px 12px;border-radius:8px;border:1px solid #7f1d1d;">radon_node</span>
+        <span style="background:#1e293b;color:#c084fc;padding:4px 12px;border-radius:8px;border:1px solid #581c87;">explain_node</span>
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:8px;margin:4px 0;color:#475569;">
+        <span>↘</span><span>↓</span><span>↙</span>
+        <span style="margin-left:8px;">↓</span>
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:16px;">
+        <div style="text-align:center;">
+          <span style="color:#475569;font-size:11px;">← loop back (iter &lt; 5)</span>
+        </div>
+        <div style="text-align:center;">
+          <span style="color:#475569;font-size:11px;">↓</span>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:4px;">
+        <span style="background:#1e3a5f;color:#60a5fa;padding:4px 16px;border-radius:20px;">END</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- State and nodes -->
+  <div style="flex:1;min-width:300px;">
+    <h3>AgentState (TypedDict)</h3>
+    <div style="background:#0f172a;border-radius:8px;padding:16px;font-family:monospace;font-size:12px;color:#94a3b8;line-height:1.8;">
+      repo_id: str<br>
+      repo_path: str<br>
+      <span style="color:#34d399;">findings: list[Finding]</span>  <span style="color:#475569;"># accumulated</span><br>
+      <span style="color:#a78bfa;">tools_run: list[str]</span>  <span style="color:#475569;"># ["ruff","bandit"]</span><br>
+      <span style="color:#f59e0b;">messages: list</span>  <span style="color:#475569;"># LLM conversation</span><br>
+      <span style="color:#f87171;">iterations: int</span>  <span style="color:#475569;"># hard cap: 5</span><br>
+      done: bool<br>
+      final_findings: list[dict]
+    </div>
+
+    <h3 style="margin-top:16px;">Node responsibilities</h3>
+    <div style="font-size:13px;line-height:2;">
+      <div><span style="color:#a78bfa;">decide_node</span> — LLM sees findings so far + tools already run → outputs next tool name or "done"</div>
+      <div><span style="color:#34d399;">ruff_node</span> — runs ruff subprocess → appends findings, adds summary to messages</div>
+      <div><span style="color:#f59e0b;">bandit_node</span> — runs bandit subprocess → same pattern</div>
+      <div><span style="color:#f87171;">radon_node</span> — runs radon subprocess → same pattern</div>
+      <div><span style="color:#c084fc;">explain_node</span> — LLM receives all findings → outputs explanations → stored in DB</div>
+    </div>
+
+    <h3 style="margin-top:16px;">Conditional edge logic</h3>
+    <div style="background:#0f172a;border-radius:8px;padding:12px;font-family:monospace;font-size:12px;color:#94a3b8;line-height:1.8;">
+      <span style="color:#475569;"># after decide_node:</span><br>
+      if done or iterations &gt;= 5 → <span style="color:#c084fc;">explain_node</span><br>
+      if next_tool == "ruff"   → <span style="color:#34d399;">ruff_node</span><br>
+      if next_tool == "bandit" → <span style="color:#f59e0b;">bandit_node</span><br>
+      if next_tool == "radon"  → <span style="color:#f87171;">radon_node</span><br>
+      <span style="color:#475569;"># after any tool node:</span><br>
+      always → <span style="color:#a78bfa;">decide_node</span>  (loop)
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:24px;font-size:0.85em;color:#64748b;">Rate limit protection: 2s delay before each <span style="font-family:monospace;">decide_node</span> LLM call. Max 5 iterations = max 6 LLM calls (5 decide + 1 explain). Well within Groq 30 RPM.</p>

@@ -219,6 +219,8 @@ export default function ExploreTab({ repoId, pendingQuestion, onClearPending }: 
           padding: "12px 16px",
           display: "flex",
           gap: "8px",
+          width: "100%",
+          minWidth: 0,
         }}
       >
         <input
@@ -228,6 +230,7 @@ export default function ExploreTab({ repoId, pendingQuestion, onClearPending }: 
           disabled={loading}
           style={{
             flex: 1,
+            minWidth: 0,
             background: "var(--surface2)",
             border: "1px solid var(--border)",
             borderRadius: "6px",
@@ -236,6 +239,9 @@ export default function ExploreTab({ repoId, pendingQuestion, onClearPending }: 
             fontSize: "13px",
             color: "var(--text)",
             outline: "none",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
           }}
         />
         <button

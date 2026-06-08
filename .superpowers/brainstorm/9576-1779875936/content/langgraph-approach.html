@@ -1,0 +1,45 @@
+<h2>Phase 3: LangGraph Architecture</h2>
+<p class="subtitle">How agentic should the Improve pipeline be? Pick the approach that fits the viva and deadline.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Linear Pipeline Graph</h3>
+      <p>START → <strong>run_tools</strong> (all 3 at once) → <strong>explain</strong> (LLM) → END</p>
+      <p style="margin-top:8px;font-size:0.85em;color:#94a3b8;">Wraps current flow in a StateGraph. Same logic, LangSmith tracing added. Minimal LangGraph concepts. Fast to build.</p>
+      <div class="pros-cons" style="margin-top:10px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Done in half a day</li><li>Zero risk to deadline</li><li>LangSmith still works</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Not truly agentic</li><li>Weak viva story</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Parallel Tool Nodes</h3>
+      <p>START → <strong>ruff_node</strong> | <strong>bandit_node</strong> | <strong>radon_node</strong> (parallel) → <strong>aggregate</strong> → <strong>explain</strong> (LLM) → END</p>
+      <p style="margin-top:8px;font-size:0.85em;color:#94a3b8;">Each static analysis tool is its own node. LangGraph fans them out and joins. One LLM call at the end. Good educational value — teaches parallel state, fan-out/join.</p>
+      <div class="pros-cons" style="margin-top:10px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Clear node/edge story</li><li>Teaches real LangGraph patterns</li><li>Still 1 LLM call (safe rate limits)</li><li>1–2 days of work</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>No iterative loop (less "agentic")</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Agentic Loop (ReAct-style)</h3>
+      <p>START → <strong>plan</strong> (LLM picks tools) → <strong>invoke_tool</strong> → <strong>decide</strong> (LLM: done?) → loop back or → <strong>explain</strong> → END</p>
+      <p style="margin-top:8px;font-size:0.85em;color:#94a3b8;">LLM decides which tools to run, sees results, decides if more analysis is needed. Bounded: max 4 iterations, 2s delay. True agentic loop — strongest viva story.</p>
+      <div class="pros-cons" style="margin-top:10px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Real StateGraph with conditional edges</li><li>Best viva story</li><li>Matches context.md vision exactly</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>3–5 LLM calls per run</li><li>More complex to debug</li><li>2–3 days of work</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:20px;font-size:0.85em;color:#64748b;">My recommendation: <strong>B</strong> — teaches the core LangGraph concepts clearly, fits deadline, defensible in viva. Choose C if you want the full agentic story and have 2–3 days.</p>

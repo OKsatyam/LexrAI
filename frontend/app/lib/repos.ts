@@ -23,6 +23,12 @@ export function updateRepo(id: string, patch: Partial<StoredRepo>): void {
   localStorage.setItem(REPOS_KEY, JSON.stringify(repos));
 }
 
+export function deleteRepo(id: string): void {
+  const repos = getRepos().filter((r) => r.id !== id);
+  localStorage.setItem(REPOS_KEY, JSON.stringify(repos));
+  localStorage.removeItem(`lexrai_chat_${id}`);
+}
+
 export function getRepoById(id: string): StoredRepo | null {
   return getRepos().find((r) => r.id === id) ?? null;
 }

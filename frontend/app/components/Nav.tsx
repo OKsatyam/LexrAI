@@ -35,6 +35,34 @@ export default function Nav() {
         <span style={{ color: "var(--green)", fontSize: "10px" }}>■</span>
         LEXR AI
       </Link>
+
+      {/* Nav actions */}
+      <div style={{ marginLeft: "auto", display: "flex", gap: "8px", alignItems: "center" }}>
+        <Link
+          href="/"
+          style={{
+            fontFamily: "var(--font-mono), monospace",
+            fontSize: "11px",
+            color: "var(--text-dim)",
+            textDecoration: "none",
+            padding: "5px 12px",
+            border: "1px solid var(--border)",
+            borderRadius: "5px",
+            letterSpacing: "0.05em",
+            transition: "border-color 0.15s, color 0.15s",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.borderColor = "var(--green)";
+            (e.currentTarget as HTMLElement).style.color = "var(--green)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.borderColor = "var(--border)";
+            (e.currentTarget as HTMLElement).style.color = "var(--text-dim)";
+          }}
+        >
+          + NEW
+        </Link>
+      </div>
     </nav>
   );
 }

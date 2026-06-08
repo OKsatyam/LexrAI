@@ -5,13 +5,17 @@ import type { Finding } from "../lib/types";
 
 const severityBorderColor: Record<string, string> = {
   high: "var(--red-soft)",
+  error: "var(--red-soft)",
   medium: "var(--amber)",
+  warning: "var(--amber)",
   low: "var(--steel)",
 };
 
 const severityLabel: Record<string, string> = {
   high: "HIGH",
+  error: "HIGH",
   medium: "MED",
+  warning: "LOW",
   low: "LOW",
 };
 

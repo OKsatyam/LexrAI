@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LexrAI — Design Direction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #050709;
+    --surface: #0b0e12;
+    --surface2: #111418;
+    --surface3: #171c22;
+    --border: #1e2530;
+    --border2: #252d38;
+    --green: #00ff87;
+    --green-dim: #00cc6a;
+    --green-muted: rgba(0,255,135,0.08);
+    --steel: #4a7fa5;
+    --steel-dim: #2d5070;
+    --amber: #f59e0b;
+    --red: #f87171;
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --text-muted: #334155;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--black);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ─── SECTION LABELS ─────────────────────────── */
+  .screen-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--green);
+    border: 1px solid var(--green);
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 2px;
+    margin-bottom: 12px;
+  }
+
+  .section-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 48px 0;
+  }
+
+  /* ─── LANDING PAGE ───────────────────────────── */
+  .landing {
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Grid background */
+  .landing::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,135,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,135,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  .landing-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 48px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    z-index: 10;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .logo span { color: var(--green); }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .nav-link {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: color 0.15s;
+  }
+  .nav-link:hover { color: var(--text); }
+
+  .nav-cta {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--black);
+    background: var(--green);
+    padding: 7px 16px;
+    border-radius: 3px;
+    text-decoration: none;
+    letter-spacing: 0.03em;
+  }
+
+  .landing-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 80px 48px;
+    position: relative;
+    z-index: 10;
+  }
+
+  .hero-tag {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--green);
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hero-tag::before, .hero-tag::after {
+    content: '';
+    display: block;
+    height: 1px;
+    width: 32px;
+    background: var(--green);
+    opacity: 0.4;
+  }
+
+  .hero-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(48px, 8vw, 96px);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    margin-bottom: 24px;
+    color: var(--text);
+  }
+
+  .hero-title em {
+    font-style: normal;
+    color: var(--green);
+    position: relative;
+  }
+
+  .hero-sub {
+    font-size: 13px;
+    color: var(--text-dim);
+    max-width: 480px;
+    line-height: 1.8;
+    margin-bottom: 48px;
+  }
+
+  .hero-input-row {
+    display: flex;
+    gap: 0;
+    width: 100%;
+    max-width: 560px;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .hero-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 14px 18px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .hero-input::placeholder { color: var(--text-muted); }
+
+  .hero-btn {
+    background: var(--green);
+    color: var(--black);
+    border: none;
+    padding: 14px 24px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 48px;
+    margin-top: 64px;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--green);
+    letter-spacing: -0.02em;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* ─── DASHBOARD ──────────────────────────────── */
+  .app-shell {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    grid-template-rows: 48px 1fr;
+    height: 600px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface);
+    margin: 0 48px;
+  }
+
+  .app-topbar {
+    grid-column: 1 / -1;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 16px;
+  }
+
+  .topbar-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--text);
+    margin-right: 8px;
+  }
+  .topbar-logo span { color: var(--green); }
+
+  .topbar-sep {
+    width: 1px;
+    height: 16px;
+    background: var(--border2);
+  }
+
+  .topbar-breadcrumb {
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .topbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--steel-dim);
+    border: 1px solid var(--steel);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--steel);
+    font-weight: 600;
+  }
+
+  .app-sidebar {
+    background: var(--surface2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-section-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 12px 16px 6px;
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.1s;
+  }
+
+  .sidebar-item:hover { color: var(--text); background: var(--surface3); }
+  .sidebar-item.active { color: var(--green); border-left-color: var(--green); background: var(--green-muted); }
+
+  .sidebar-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border2);
+    flex-shrink: 0;
+  }
+  .sidebar-item.active .sidebar-dot { background: var(--green); }
+
+  .app-main {
+    padding: 24px;
+    overflow: auto;
+    background: var(--black);
+  }
+
+  .dash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .dash-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .add-btn {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--green);
+    background: var(--green-muted);
+    border: 1px solid rgba(0,255,135,0.2);
+    padding: 6px 14px;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+  }
+
+  .repo-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .repo-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+
+  .repo-card:hover { border-color: var(--border2); }
+  .repo-card.active-card { border-color: rgba(0,255,135,0.3); }
+
+  /* Circuit trace accent */
+  .repo-card::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 60px; height: 60px;
+    background:
+      linear-gradient(rgba(0,255,135,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,135,0.06) 1px, transparent 1px);
+    background-size: 12px 12px;
+    border-radius: 0 6px 0 0;
+  }
+
+  .repo-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+
+  .repo-url {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+
+  .repo-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+
+  .chip-green { background: rgba(0,255,135,0.08); color: var(--green-dim); border: 1px solid rgba(0,255,135,0.15); }
+  .chip-steel { background: rgba(74,127,165,0.1); color: var(--steel); border: 1px solid rgba(74,127,165,0.2); }
+  .chip-amber { background: rgba(245,158,11,0.08); color: var(--amber); border: 1px solid rgba(245,158,11,0.15); }
+
+  .repo-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .repo-time { font-size: 9px; color: var(--text-muted); }
+
+  .repo-status {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .status-done { color: var(--green); }
+  .status-running { color: var(--amber); }
+
+  /* ─── REPO DETAIL ────────────────────────────── */
+  .repo-detail-shell {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    grid-template-rows: 48px 1fr;
+    height: 560px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface);
+    margin: 0 48px;
+  }
+
+  .tab-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 0;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    overflow: hidden;
+  }
+
+  .tab {
+    font-size: 11px;
+    padding: 12px 20px;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .tab.active {
+    color: var(--green);
+    border-bottom-color: var(--green);
+  }
+
+  .detail-main {
+    padding: 24px;
+    overflow: auto;
+    background: var(--black);
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .understand-block {
+    font-size: 12px;
+    line-height: 1.9;
+    color: var(--text-dim);
+    max-width: 640px;
+  }
+
+  .understand-block h4 {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin: 16px 0 6px;
+  }
+
+  .chat-area {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 12px;
+  }
+
+  .chat-messages {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .msg {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .msg-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+
+  .msg-user .msg-icon { background: var(--steel-dim); color: var(--steel); }
+  .msg-ai .msg-icon { background: var(--green-muted); color: var(--green); border: 1px solid rgba(0,255,135,0.2); }
+
+  .msg-body {
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: var(--text-dim);
+    max-width: 520px;
+  }
+
+  .msg-user .msg-body { color: var(--text); }
+
+  .source-tags {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+
+  .source-tag {
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 2px;
+    background: rgba(74,127,165,0.08);
+    color: var(--steel);
+    border: 1px solid rgba(74,127,165,0.15);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .chat-input-row {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--surface2);
+  }
+
+  .chat-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 10px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  .chat-send {
+    background: var(--green);
+    color: var(--black);
+    border: none;
+    padding: 10px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* ─── OUTER WRAPPER ──────────────────────────── */
+  .outer {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 48px 64px;
+  }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .section-head-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+<!-- ── SCREEN 1: LANDING ──────────────────────── -->
+<div class="landing">
+  <nav class="landing-nav">
+    <div class="logo">Lexr<span>AI</span></div>
+    <div class="nav-links">
+      <a href="#" class="nav-link">Docs</a>
+      <a href="#" class="nav-link">GitHub</a>
+      <a href="#" class="nav-link">Sign in</a>
+      <a href="#" class="nav-cta">Get started →</a>
+    </div>
+  </nav>
+
+  <div class="landing-hero">
+    <div class="hero-tag">AI-powered codebase intelligence</div>
+    <h1 class="hero-title">
+      Read code<br>like a<br><em>senior dev</em>
+    </h1>
+    <p class="hero-sub">
+      Drop any GitHub repo. LexrAI maps the architecture, answers your questions, and surfaces what needs fixing — in seconds.
+    </p>
+    <div class="hero-input-row">
+      <input class="hero-input" placeholder="https://github.com/owner/repo" type="text" value="https://github.com/pallets/click"/>
+      <button class="hero-btn">ANALYSE →</button>
+    </div>
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num">90%</div>
+        <div class="stat-label">Hit@3 retrieval</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">3</div>
+        <div class="stat-label">Analysis pillars</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">&lt;60s</div>
+        <div class="stat-label">First insight</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="outer" style="margin-top:64px;">
+
+  <!-- ── SCREEN 2: DASHBOARD ─────────────────── -->
+  <div class="section-head">
+    <span class="screen-label">Screen 02</span>
+    <span class="section-head-text">Dashboard — Your Repositories</span>
+  </div>
+
+  <div class="app-shell">
+    <!-- Topbar -->
+    <div class="app-topbar">
+      <span class="topbar-logo">Lexr<span>AI</span></span>
+      <div class="topbar-sep"></div>
+      <span class="topbar-breadcrumb">Dashboard</span>
+      <div class="topbar-right">
+        <span style="font-size:10px;color:var(--text-muted);">sk921</span>
+        <div class="avatar">S</div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="app-sidebar">
+      <div class="sidebar-section-label">Navigation</div>
+      <div class="sidebar-item active">
+        <div class="sidebar-dot"></div>Repositories
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>Profile
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>Settings
+      </div>
+
+      <div class="sidebar-section-label" style="margin-top:16px;">Recent</div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot" style="background:var(--green);"></div>pallets/click
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>django/django
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="app-main">
+      <div class="dash-header">
+        <div class="dash-title">Repositories</div>
+        <button class="add-btn">+ ADD REPO</button>
+      </div>
+
+      <div class="repo-grid">
+        <div class="repo-card active-card">
+          <div class="repo-name">pallets / click</div>
+          <div class="repo-url">github.com/pallets/click</div>
+          <div class="repo-chips">
+            <span class="chip chip-green">Understood</span>
+            <span class="chip chip-steel">Explored</span>
+            <span class="chip chip-amber">20 findings</span>
+          </div>
+          <div class="repo-meta">
+            <span class="repo-time">2 days ago</span>
+            <span class="repo-status status-done">● READY</span>
+          </div>
+        </div>
+
+        <div class="repo-card">
+          <div class="repo-name">django / django</div>
+          <div class="repo-url">github.com/django/django</div>
+          <div class="repo-chips">
+            <span class="chip chip-green">Understood</span>
+          </div>
+          <div class="repo-meta">
+            <span class="repo-time">5 days ago</span>
+            <span class="repo-status status-done">● READY</span>
+          </div>
+        </div>
+
+        <div class="repo-card">
+          <div class="repo-name">fastapi / fastapi</div>
+          <div class="repo-url">github.com/tiangolo/fastapi</div>
+          <div class="repo-chips">
+            <span class="chip chip-amber">Ingesting...</span>
+          </div>
+          <div class="repo-meta">
+            <span class="repo-time">just now</span>
+            <span class="repo-status status-running">◌ RUNNING</span>
+          </div>
+        </div>
+
+        <div class="repo-card" style="border-style:dashed;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:120px;">
+          <div style="text-align:center;">
+            <div style="font-size:20px;color:var(--text-muted);margin-bottom:6px;">+</div>
+            <div style="font-size:10px;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;">New Repository</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="section-divider"/>
+
+  <!-- ── SCREEN 3: REPO DETAIL — EXPLORE/CHAT ── -->
+  <div class="section-head">
+    <span class="screen-label">Screen 03</span>
+    <span class="section-head-text">Repo Detail — Explore (Chat)</span>
+  </div>
+
+  <div class="repo-detail-shell">
+    <!-- Topbar -->
+    <div class="app-topbar">
+      <span class="topbar-logo">Lexr<span>AI</span></span>
+      <div class="topbar-sep"></div>
+      <span class="topbar-breadcrumb" style="color:var(--text-muted);">Repositories</span>
+      <span style="font-size:11px;color:var(--text-muted);margin:0 6px;">/</span>
+      <span style="font-size:11px;color:var(--text);">pallets/click</span>
+      <div class="topbar-right">
+        <div class="avatar">S</div>
+      </div>
+    </div>
+
+    <!-- Sidebar (repo nav) -->
+    <div class="app-sidebar">
+      <div class="sidebar-section-label">Pillars</div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>Understand
+      </div>
+      <div class="sidebar-item active">
+        <div class="sidebar-dot"></div>Explore
+      </div>
+      <div class="sidebar-item">
+        <div class="sidebar-dot"></div>Improve
+      </div>
+
+      <div class="sidebar-section-label" style="margin-top:16px;">Info</div>
+      <div style="padding:8px 16px;font-size:10px;color:var(--text-muted);line-height:1.7;">
+        <div>pallets/click</div>
+        <div style="color:var(--green);margin-top:2px;">● Ready</div>
+        <div style="margin-top:6px;">Hit@3: 0.90</div>
+        <div>MRR: 0.717</div>
+      </div>
+    </div>
+
+    <!-- Chat main -->
+    <div class="detail-main">
+      <div class="chat-area">
+        <div class="chat-messages">
+          <div class="msg msg-user">
+            <div class="msg-icon">S</div>
+            <div class="msg-body">How does click handle command groups and nested subcommands?</div>
+          </div>
+          <div class="msg msg-ai">
+            <div class="msg-icon">AI</div>
+            <div class="msg-body">
+              Click uses the <code style="background:var(--surface3);padding:1px 5px;border-radius:2px;color:var(--green);font-size:10px;">@click.group()</code> decorator to create a command group. Each subcommand is attached via <code style="background:var(--surface3);padding:1px 5px;border-radius:2px;color:var(--green);font-size:10px;">.command()</code> on the group object. Groups can nest arbitrarily — a group can itself be registered as a subcommand of another group.
+              <div class="source-tags">
+                <span class="source-tag">core/commands.py:218</span>
+                <span class="source-tag">decorators.py:91</span>
+                <span class="source-tag">testing.py:44</span>
+              </div>
+            </div>
+          </div>
+          <div class="msg msg-user">
+            <div class="msg-icon">S</div>
+            <div class="msg-body">Where is argument parsing handled?</div>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input class="chat-input" placeholder="Ask anything about this codebase…" value="Where is argument parsing handled?"/>
+          <button class="chat-send">→</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

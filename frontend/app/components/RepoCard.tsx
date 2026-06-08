@@ -48,9 +48,10 @@ const statusLabel: Record<StoredRepo["status"], string> = {
 interface Props {
   repo: StoredRepo;
   onStatusChange: () => void;
+  onDelete: (id: string) => void;
 }
 
-export default function RepoCard({ repo, onStatusChange }: Props) {
+export default function RepoCard({ repo, onStatusChange, onDelete }: Props) {
   const router = useRouter();
   const [hovered, setHovered] = useState(false);
   const [retrying, setRetrying] = useState(false);
@@ -61,8 +62,11 @@ export default function RepoCard({ repo, onStatusChange }: Props) {
 
   useIngestPoller(repo.id, repo.status === "ingesting", handleUpdate);
 
+  const isUpload = repo.repoUrl.startsWith("upload://") || repo.repoUrl.startsWith("local://");
+
   async function handleRetry(e: React.MouseEvent) {
     e.stopPropagation();
+    if (isUpload) return; // uploads can't be retried without re-uploading files
     setRetrying(true);
     try {
       await ingestRepo(repo.repoUrl);
@@ -159,6 +163,23 @@ export default function RepoCard({ repo, onStatusChange }: Props) {
           )}
           {statusLabel[repo.status]}
         </div>
+
+        {/* Delete button — inline, visible on hover */}
+        {hovered && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(repo.id); }}
+            title="Remove"
+            style={{
+              background: "none", border: "none", cursor: "pointer",
+              color: "var(--text-muted)", fontSize: "12px", lineHeight: 1,
+              padding: "4px 6px", marginLeft: "8px",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--red-soft)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       {/* Feature pills */}
@@ -171,28 +192,31 @@ export default function RepoCard({ repo, onStatusChange }: Props) {
 
       {/* Retry button — only on failed */}
       {repo.status === "failed" && (
-        <button
-          onClick={handleRetry}
-          disabled={retrying}
-          style={{
-            marginTop: "8px",
-            background: "none",
-            border: "1px solid var(--red-soft)",
-            borderRadius: "4px",
-            padding: "5px 12px",
+        isUpload ? (
+          <p style={{
+            marginTop: "8px", fontSize: "10px",
             fontFamily: "var(--font-mono), monospace",
-            fontSize: "10px",
-            fontWeight: 600,
-            color: "var(--red-soft)",
-            cursor: retrying ? "wait" : "pointer",
-            letterSpacing: "0.08em",
-            alignSelf: "flex-start",
-            opacity: retrying ? 0.5 : 1,
-            transition: "opacity 0.15s",
-          }}
-        >
-          {retrying ? "RETRYING…" : "↻ RETRY"}
-        </button>
+            color: "var(--text-muted)", letterSpacing: "0.05em",
+          }}>
+            Re-upload files to re-analyse
+          </p>
+        ) : (
+          <button
+            onClick={handleRetry}
+            disabled={retrying}
+            style={{
+              marginTop: "8px", background: "none",
+              border: "1px solid var(--red-soft)", borderRadius: "4px",
+              padding: "5px 12px", fontFamily: "var(--font-mono), monospace",
+              fontSize: "10px", fontWeight: 600, color: "var(--red-soft)",
+              cursor: retrying ? "wait" : "pointer", letterSpacing: "0.08em",
+              alignSelf: "flex-start", opacity: retrying ? 0.5 : 1,
+              transition: "opacity 0.15s",
+            }}
+          >
+            {retrying ? "RETRYING…" : "↻ RETRY"}
+          </button>
+        )
       )}
     </motion.div>
   );

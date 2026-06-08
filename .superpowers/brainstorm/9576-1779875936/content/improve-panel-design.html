@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ImprovePanel Design</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #030712;
+    color: #e2e8f0;
+    font-family: 'Inter', sans-serif;
+    padding: 24px;
+    min-height: 100vh;
+  }
+
+  h2 { font-size: 13px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 20px; }
+
+  .panels { display: flex; gap: 20px; flex-wrap: wrap; }
+  .panel { flex: 1; min-width: 280px; background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 20px; }
+  .panel-label { font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; font-family: 'JetBrains Mono', monospace; }
+
+  /* --- IDLE STATE --- */
+  .idle-title { font-size: 15px; font-weight: 600; color: #f1f5f9; margin-bottom: 6px; }
+  .idle-sub { font-size: 12px; color: #64748b; margin-bottom: 16px; }
+  .run-btn {
+    display: flex; align-items: center; gap: 8px;
+    background: #1e3a5f; border: 1px solid #2563eb44;
+    color: #60a5fa; font-size: 13px; font-weight: 600;
+    padding: 10px 18px; border-radius: 8px; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace; letter-spacing: 0.02em;
+  }
+  .run-btn:hover { background: #1d4ed8; color: #fff; }
+  .play-icon { width: 14px; height: 14px; }
+
+  /* --- RUNNING STATE --- */
+  .agent-log {
+    background: #020617; border: 1px solid #0f172a; border-radius: 8px;
+    padding: 14px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px;
+    line-height: 1.8; max-height: 220px; overflow-y: auto;
+  }
+  .log-line { display: flex; gap: 10px; align-items: baseline; }
+  .log-time { color: #334155; min-width: 42px; }
+  .log-tag { font-weight: 600; min-width: 60px; }
+  .tag-decide { color: #a78bfa; }
+  .tag-ruff   { color: #34d399; }
+  .tag-bandit { color: #f59e0b; }
+  .tag-radon  { color: #f87171; }
+  .log-msg { color: #94a3b8; }
+
+  .iter-bar { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .iter-label { font-size: 11px; color: #475569; font-family: 'JetBrains Mono', monospace; }
+  .iter-dots { display: flex; gap: 5px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #1e293b; }
+  .dot.active { background: #a78bfa; }
+  .dot.done   { background: #34d399; }
+
+  .pulse { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #a78bfa; animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.85)} }
+
+  /* --- DONE STATE --- */
+  .findings-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .findings-count { font-size: 12px; color: #64748b; font-family: 'JetBrains Mono', monospace; }
+  .sev-pills { display: flex; gap: 6px; }
+  .pill { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 20px; font-family: 'JetBrains Mono', monospace; }
+  .pill-high   { background: #450a0a; color: #f87171; border: 1px solid #7f1d1d; }
+  .pill-medium { background: #431407; color: #fb923c; border: 1px solid #78350f; }
+  .pill-low    { background: #0c1a33; color: #60a5fa; border: 1px solid #1e3a5f; }
+
+  .finding-card { background: #070f1f; border: 1px solid #1e293b; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; border-left: 3px solid transparent; }
+  .finding-card.high   { border-left-color: #ef4444; }
+  .finding-card.medium { border-left-color: #f97316; }
+  .finding-card.low    { border-left-color: #3b82f6; }
+  .finding-top { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
+  .finding-tool { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #475569; background: #0f172a; padding: 2px 6px; border-radius: 4px; }
+  .finding-file { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: #64748b; }
+  .finding-msg  { font-size: 12px; color: #cbd5e1; margin-bottom: 6px; }
+  .finding-exp  { font-size: 11px; color: #64748b; border-left: 2px solid #1e293b; padding-left: 8px; line-height: 1.6; }
+</style>
+</head>
+<body>
+  <h2>ImprovePanel — 3 states</h2>
+
+  <div class="panels">
+
+    <!-- IDLE -->
+    <div class="panel">
+      <div class="panel-label">State: idle</div>
+      <div class="idle-title">Code Analysis</div>
+      <div class="idle-sub">Run the AI agent to detect issues across style, security, and complexity.</div>
+      <button class="run-btn">
+        <svg class="play-icon" viewBox="0 0 16 16" fill="currentColor"><polygon points="4,2 14,8 4,14"/></svg>
+        Run Analysis
+      </button>
+    </div>
+
+    <!-- RUNNING -->
+    <div class="panel">
+      <div class="panel-label">State: running — iteration 2 / 5</div>
+      <div class="agent-log">
+        <div class="log-line"><span class="log-time">00:00</span><span class="log-tag tag-decide">[decide]</span><span class="log-msg">Starting analysis. Will run ruff first.</span></div>
+        <div class="log-line"><span class="log-time">00:02</span><span class="log-tag tag-ruff">[ruff]</span><span class="log-msg">Found 12 findings across 4 files.</span></div>
+        <div class="log-line"><span class="log-time">00:04</span><span class="log-tag tag-decide">[decide]</span><span class="log-msg">Security check needed. Running bandit.</span></div>
+        <div class="log-line"><span class="log-time">00:06</span><span class="log-tag tag-bandit">[bandit]</span><span class="log-msg">Found 3 medium-severity issues.</span></div>
+        <div class="log-line"><span class="log-time">00:08</span><span class="log-tag tag-decide">[decide]</span><span class="log-msg"><span class="pulse"></span> Deciding next step…</span></div>
+      </div>
+      <div class="iter-bar">
+        <span class="iter-label">iterations</span>
+        <div class="iter-dots">
+          <div class="dot done"></div>
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+        <span class="iter-label">2 / 5</span>
+      </div>
+    </div>
+
+    <!-- DONE -->
+    <div class="panel">
+      <div class="panel-label">State: done</div>
+      <div class="findings-header">
+        <div class="findings-count">20 findings · 3 tools · 4 iterations</div>
+        <div class="sev-pills">
+          <span class="pill pill-high">HIGH 8</span>
+          <span class="pill pill-medium">MED 9</span>
+          <span class="pill pill-low">LOW 3</span>
+        </div>
+      </div>
+
+      <div class="finding-card high">
+        <div class="finding-top">
+          <span class="pill pill-high">HIGH</span>
+          <span class="finding-tool">RADON</span>
+          <span class="finding-file">core.py:2789</span>
+        </div>
+        <div class="finding-msg">invoke has cyclomatic complexity 24 (rank D)</div>
+        <div class="finding-exp">High cyclomatic complexity means many branching paths, making this hard to test and maintain. Break into smaller methods handling one case each.</div>
+      </div>
+
+      <div class="finding-card medium">
+        <div class="finding-top">
+          <span class="pill pill-medium">MED</span>
+          <span class="finding-tool">BANDIT</span>
+          <span class="finding-file">utils.py:44</span>
+        </div>
+        <div class="finding-msg">Use of subprocess with shell=True</div>
+        <div class="finding-exp">shell=True can enable shell injection if input is user-controlled. Pass arguments as a list instead.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <p style="margin-top:20px;font-size:11px;color:#334155;font-family:'JetBrains Mono',monospace;">
+    Font: JetBrains Mono (log/code) + Inter (body) · Palette: slate-900 base, purple/green/amber/red tool accents · Left-border severity coding on cards
+  </p>
+</body>
+</html>

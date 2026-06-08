@@ -7,7 +7,7 @@ import RepoCard from "../components/RepoCard";
 import SkeletonCard from "../components/SkeletonCard";
 import AddRepoModal from "../components/AddRepoModal";
 import EmptyDashboard from "../components/EmptyDashboard";
-import { getRepos } from "../lib/repos";
+import { deleteRepo, getRepos } from "../lib/repos";
 import type { StoredRepo } from "../lib/types";
 
 export default function DashboardPage() {
@@ -88,7 +88,7 @@ export default function DashboardPage() {
                 }}
                 transition={{ duration: 0.25 }}
               >
-                <RepoCard repo={repo} onStatusChange={loadRepos} />
+                <RepoCard repo={repo} onStatusChange={loadRepos} onDelete={(id) => { deleteRepo(id); loadRepos(); }} />
               </motion.div>
             ))}
 

@@ -87,6 +87,32 @@ export default function LandingPage() {
         overflow: "hidden",
       }}
     >
+      {/* Dashboard button — fixed top right, always visible */}
+      <button
+        onClick={() => router.push("/dashboard")}
+        style={{
+          position: "absolute", top: "20px", right: "24px", zIndex: 10,
+          background: "transparent",
+          border: "1px solid var(--green)",
+          borderRadius: "6px",
+          padding: "7px 16px",
+          fontFamily: "var(--font-mono), monospace",
+          fontSize: "11px", fontWeight: 600,
+          color: "var(--green)",
+          cursor: "pointer", letterSpacing: "0.08em",
+          transition: "background 0.15s, color 0.15s",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "var(--green)";
+          e.currentTarget.style.color = "var(--black)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.color = "var(--green)";
+        }}
+      >
+        DASHBOARD →
+      </button>
       {/* Grid background */}
       <div
         aria-hidden
@@ -307,21 +333,6 @@ export default function LandingPage() {
               {s}
             </span>
           ))}
-        </div>
-        {/* Dashboard link */}
-        <div style={{ marginTop: "24px" }}>
-          <button
-            onClick={() => router.push("/dashboard")}
-            style={{
-              background: "none", border: "none",
-              fontFamily: "var(--font-mono), monospace",
-              fontSize: "12px", color: "var(--text-muted)",
-              cursor: "pointer", letterSpacing: "0.05em",
-              textDecoration: "underline", textUnderlineOffset: "3px",
-            }}
-          >
-            View previous analyses →
-          </button>
         </div>
       </div>
     </main>

@@ -128,24 +128,30 @@ def load_from_path(root: Path) -> list[Document]:
         lang = _LANG_EXT.get(ext)
         try:
             if lang:
-                loader = GenericLoader.from_filesystem(
-                    str(fp.parent),
-                    glob=fp.name,
-                    suffixes=[ext],
-                    parser=LanguageParser(language=lang),
-                )
-                loaded = loader.load()
-                # Tag with file_type for understand prompt
-                for d in loaded:
-                    d.metadata.setdefault("file_type", "code")
-                    d.metadata.setdefault("language", lang)
+                try:
+                    loader = GenericLoader.from_filesystem(
+                        str(fp.parent),
+                        glob=fp.name,
+                        suffixes=[ext],
+                        parser=LanguageParser(language=lang),
+                    )
+                    loaded = loader.load()
+                    for d in loaded:
+                        d.metadata.setdefault("file_type", "code")
+                        d.metadata.setdefault("language", lang)
+                except Exception:
+                    # LanguageParser failed — fallback to TextLoader
+                    loaded = TextLoader(str(fp), encoding="utf-8", autodetect_encoding=True).load()
+                    for d in loaded:
+                        d.metadata.setdefault("file_type", "code")
+                        d.metadata.setdefault("language", lang)
             else:
                 loaded = TextLoader(str(fp), encoding="utf-8", autodetect_encoding=True).load()
                 for d in loaded:
                     d.metadata.setdefault("file_type", "text")
             docs.extend(loaded)
         except Exception:
-            pass  # skip unreadable files
+            pass  # skip completely unreadable files
 
     return docs
 
