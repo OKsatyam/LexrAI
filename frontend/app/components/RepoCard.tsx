@@ -167,7 +167,12 @@ export default function RepoCard({ repo, onStatusChange, onDelete }: Props) {
         {/* Delete button — inline, visible on hover */}
         {hovered && (
           <button
-            onClick={(e) => { e.stopPropagation(); onDelete(repo.id); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm(`Delete ${repo.owner}/${repo.name}? This cannot be undone.`)) {
+                onDelete(repo.id);
+              }
+            }}
             title="Remove"
             style={{
               background: "none", border: "none", cursor: "pointer",
